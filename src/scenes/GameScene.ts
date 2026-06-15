@@ -25,29 +25,40 @@ export class GameScene extends Phaser.Scene {
   }
 
   init(data: { levelId?: string }): void {
+    this.registry.set('pendingLevelId', data.levelId ?? 'level1_breach');
     this.state = GameState.reset();
-    const level = getLevelById(data.levelId ?? 'level1_breach');
-    if (level) {
-      this.state.loadLevel(level);
-      this.pathFollower = new PathFollower(level.path);
-    }
   }
 
   create(): void {
+    const levelId = this.registry.get('pendingLevelId') as string;
+    const level = getLevelById(levelId);
+    if (!level) {
+      this.scene.start('Menu');
+      return;
+    }
+
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.bg);
 
     this.colony = new ColonySystem(this.state);
+    this.pathFollower = new PathFollower(level.path);
     this.waveManager = new WaveManager(this.state, this.pathFollower);
     this.combat = new CombatSystem(this.state, this.waveManager);
 
     this.macroPanel = new MacroPanel(this, this.state, this.colony);
     this.macroPanel.setY(HUD_HEIGHT);
+    this.add.existing(this.macroPanel);
     this.combat.bindEnemyPositions((enemy) => this.macroPanel.getEnemyPosition(enemy));
 
     const microPanel = new MicroPanel(this, this.state);
     microPanel.setY(HUD_HEIGHT);
+    this.add.existing(microPanel);
 
     this.hud = new HUD(this, this.state);
+    this.add.existing(this.hud);
+
+    // Load level AFTER panels subscribe to events
+    this.state.loadLevel(level);
+    this.macroPanel.bindLevel(level);
 
     this.state.on('gameWon', () => this.showOverlay('COLONY SURVIVED', '#6aff4a'));
     this.state.on('gameLost', () => this.showOverlay('THE QUEEN HAS FALLEN', '#cc3333'));

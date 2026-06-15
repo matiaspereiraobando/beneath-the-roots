@@ -66,8 +66,15 @@ export class MacroPanel extends Phaser.GameObjects.Container {
     });
     state.on('phaseChanged', () => this.redraw());
 
+    this.setDepth(10);
+
     this.setInteractive(new Phaser.Geom.Rectangle(0, 0, MACRO_WIDTH, PANEL_HEIGHT), Phaser.Geom.Rectangle.Contains);
     this.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.handleClick(pointer.x, pointer.y));
+  }
+
+  bindLevel(level: LevelData): void {
+    this.pathFollower = new PathFollower(level.path);
+    this.redraw();
   }
 
   private createToolbar(): void {
@@ -198,14 +205,14 @@ export class MacroPanel extends Phaser.GameObjects.Container {
     g.fillRect(0, 0, MACRO_WIDTH, PANEL_HEIGHT);
 
     if (this.pathFollower) {
-      g.lineStyle(28, COLORS.tunnel, 1);
+      g.lineStyle(32, COLORS.tunnelFloor, 1);
       g.beginPath();
       const path = level.path;
       g.moveTo(path[0].x, path[0].y);
       for (let i = 1; i < path.length; i++) g.lineTo(path[i].x, path[i].y);
       g.strokePath();
 
-      g.lineStyle(2, COLORS.dirtLight, 0.5);
+      g.lineStyle(3, COLORS.dirtLight, 0.8);
       g.beginPath();
       g.moveTo(path[0].x, path[0].y);
       for (let i = 1; i < path.length; i++) g.lineTo(path[i].x, path[i].y);

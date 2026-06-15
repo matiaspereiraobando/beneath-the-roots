@@ -93,6 +93,8 @@ export class MicroPanel extends Phaser.GameObjects.Container {
     this.refreshQueue();
     this.refreshAnts();
     this.refreshWarehouse();
+
+    this.setDepth(10);
   }
 
   private createButton(x: number, y: number, label: string, onClick: () => void): Phaser.GameObjects.Container {

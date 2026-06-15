@@ -12,6 +12,8 @@ export class HUD extends Phaser.GameObjects.Container {
   private hintText: Phaser.GameObjects.Text;
   private muteBtn: Phaser.GameObjects.Text;
 
+  private queenHpLabel: Phaser.GameObjects.Text;
+
   constructor(scene: Phaser.Scene, state: GameState) {
     super(scene, 0, 0);
     this.gameState = state;
@@ -29,13 +31,16 @@ export class HUD extends Phaser.GameObjects.Container {
     this.satietyBar = scene.add.graphics();
 
     this.muteBtn = scene.add.text(GAME_WIDTH - 60, 10, '🔊', { fontSize: '16px' });
+    this.queenHpLabel = scene.add.text(480, 0, 'Queen HP', { fontSize: '9px', color: COLORS.textDim });
     this.muteBtn.setInteractive({ useHandCursor: true });
     this.muteBtn.on('pointerdown', () => {
       this.gameState.muted = !this.gameState.muted;
       this.muteBtn.setText(this.gameState.muted ? '🔇' : '🔊');
     });
 
-    this.add([this.biomassText, this.waveText, this.phaseText, this.hintText, this.queenHpBar, this.satietyBar, this.muteBtn]);
+    this.add([this.biomassText, this.waveText, this.phaseText, this.hintText, this.queenHpBar, this.satietyBar, this.muteBtn, this.queenHpLabel]);
+
+    this.setDepth(20);
 
     state.on('biomassChanged', () => this.refresh());
     state.on('waveChanged', () => this.refresh());
@@ -70,7 +75,6 @@ export class HUD extends Phaser.GameObjects.Container {
     const hpPct = s.queenHp / s.queenMaxHp;
     this.queenHpBar.fillStyle(hpPct < 0.3 ? 0xcc2222 : 0x882244, 1);
     this.queenHpBar.fillRect(hpX, 12, barW * hpPct, 10);
-    this.scene.add.text(hpX, 0, 'Queen HP', { fontSize: '9px', color: COLORS.textDim });
 
     this.satietyBar.clear();
     const satX = 620;

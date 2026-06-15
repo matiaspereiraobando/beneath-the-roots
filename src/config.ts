@@ -8,12 +8,13 @@ export const MICRO_WIDTH = GAME_WIDTH - MACRO_WIDTH;
 
 export const COLORS = {
   bg: 0x0a0806,
-  macroBg: 0x1a1410,
-  microBg: 0x120e0c,
+  macroBg: 0x1e1814,
+  microBg: 0x161210,
   hudBg: 0x0d0a08,
   dirt: 0x3d2e22,
   dirtLight: 0x4a3828,
-  tunnel: 0x2a1f18,
+  tunnel: 0x4a3528,
+  tunnelFloor: 0x3d2a20,
   softEarth: 0x5c4a32,
   preDug: 0x3a4a38,
   buildNode: 0x2d3d2a,
