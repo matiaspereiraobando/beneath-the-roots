@@ -10,6 +10,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('queen', '/sprites/queen.png');
     this.load.image('spitter', '/sprites/spitter.png');
     this.load.image('worker', '/sprites/worker.png');
+    this.load.image('skitter', '/sprites/skitter.png');
     this.load.image('tunnel-tileset', '/sprites/tunnel-tileset.png');
   }
 

@@ -18,13 +18,23 @@ export class MacroPanel extends Phaser.GameObjects.Container {
   private buildToolbar: Phaser.GameObjects.Container;
   private selectedBuild: TowerType | 'mine' | 'dig' | null = null;
 
+  private tunnelBg: Phaser.GameObjects.TileSprite | null = null;
+
   constructor(scene: Phaser.Scene, state: GameState, colony: ColonySystem) {
     super(scene, 0, 0);
     this.gameState = state;
     this.colony = colony;
 
-    const bg = scene.add.rectangle(MACRO_WIDTH / 2, PANEL_HEIGHT / 2, MACRO_WIDTH, PANEL_HEIGHT, COLORS.macroBg);
-    this.add(bg);
+    if (scene.textures.exists('tunnel-tileset')) {
+      this.tunnelBg = scene.add.tileSprite(0, 0, MACRO_WIDTH, PANEL_HEIGHT, 'tunnel-tileset');
+      this.tunnelBg.setOrigin(0, 0);
+      this.tunnelBg.setTileScale(2);
+      this.tunnelBg.setAlpha(0.85);
+      this.add(this.tunnelBg);
+    } else {
+      const bg = scene.add.rectangle(MACRO_WIDTH / 2, PANEL_HEIGHT / 2, MACRO_WIDTH, PANEL_HEIGHT, COLORS.macroBg);
+      this.add(bg);
+    }
 
     this.gfx = scene.add.graphics();
     this.projectileGfx = scene.add.graphics();
@@ -122,6 +132,13 @@ export class MacroPanel extends Phaser.GameObjects.Container {
   private handleClick(x: number, y: number): void {
     if (this.gameState.phase === 'won' || this.gameState.phase === 'lost') return;
 
+    // Tower interaction first — works even when a build tool is selected
+    const tower = this.findTowerAt(x, y);
+    if (tower) {
+      this.showTowerMenu(tower.id, tower.x, tower.y);
+      return;
+    }
+
     if (this.selectedBuild === 'dig') {
       const tile = this.findSoftEarthAt(x, y);
       if (tile) {
@@ -153,17 +170,10 @@ export class MacroPanel extends Phaser.GameObjects.Container {
       }
       return;
     }
+  }
 
-    if (ns === 'built' || ns === 'building') {
-      const tower = this.gameState.towers.find((t) => Math.hypot(t.x - x, t.y - y) < 28);
-      if (tower) this.showTowerMenu(tower.id, tower.x, tower.y);
-      return;
-    }
-
-    const tower = this.gameState.towers.find((t) => Math.hypot(t.x - x, t.y - y) < 28);
-    if (tower) {
-      this.showTowerMenu(tower.id, tower.x, tower.y);
-    }
+  private findTowerAt(x: number, y: number) {
+    return this.gameState.towers.find((t) => Math.hypot(t.x - x, t.y - y) < 32) ?? null;
   }
 
   private flashMessage(text: string, x: number, y: number, color = '#cc4444'): void {
@@ -214,18 +224,29 @@ export class MacroPanel extends Phaser.GameObjects.Container {
 
     const menu = this.scene.add.container(x, y - 40);
     menu.setName('towerMenu');
+    menu.setDepth(50);
 
-    const addBtn = (label: string, ox: number, fn: () => void) => {
+    const addBtn = (label: string, ox: number, fn: () => boolean | void) => {
       const b = this.scene.add.rectangle(ox, 0, 28, 20, COLORS.dirtLight);
       b.setInteractive({ useHandCursor: true });
-      b.on('pointerdown', fn);
+      b.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        pointer.event.stopPropagation();
+        const result = fn();
+        if (label === '+' && result === false) {
+          this.flashMessage('No free soldiers', x, y);
+        } else if (label === '+') {
+          const t = this.gameState.towers.find((tw) => tw.id === towerId);
+          this.flashMessage(`Soldiers: ${t?.soldiers ?? 0}`, x, y, '#6aff4a');
+        }
+        this.syncTowers();
+      });
       const t = this.scene.add.text(ox, 0, label, { fontSize: '12px', color: '#fff' }).setOrigin(0.5);
       menu.add([b, t]);
     };
 
     addBtn('+', -35, () => this.colony.assignSoldier(towerId));
-    addBtn('-', -5, () => this.colony.removeSoldier(towerId));
-    addBtn('^', 25, () => this.colony.upgradeTower(towerId));
+    addBtn('-', -5, () => { this.colony.removeSoldier(towerId); return true; });
+    addBtn('^', 25, () => { this.colony.upgradeTower(towerId); return true; });
 
     this.add(menu);
     this.scene.time.delayedCall(3000, () => menu.destroy());
@@ -237,7 +258,7 @@ export class MacroPanel extends Phaser.GameObjects.Container {
     const level = this.gameState.level;
     if (!level) return;
 
-    g.fillStyle(COLORS.dirt, 1);
+    g.fillStyle(COLORS.dirt, 0.35);
     g.fillRect(0, 0, MACRO_WIDTH, PANEL_HEIGHT);
 
     if (this.pathFollower) {
@@ -306,8 +327,14 @@ export class MacroPanel extends Phaser.GameObjects.Container {
       if (this.enemySprites.has(enemy.id)) continue;
       const stats = TUNING.enemyStats[enemy.type];
       const c = this.scene.add.container(0, 0);
-      const body = this.scene.add.rectangle(0, 0, 18, 14, stats.color);
-      const hpBar = this.scene.add.rectangle(0, -12, 16, 3, 0x33ff33);
+      let body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image;
+      if (enemy.type === 'skitter' && this.scene.textures.exists('skitter')) {
+        body = this.scene.add.image(0, 0, 'skitter');
+        body.setDisplaySize(22, 22);
+      } else {
+        body = this.scene.add.rectangle(0, 0, 18, 14, stats.color);
+      }
+      const hpBar = this.scene.add.rectangle(0, -14, 16, 3, 0x33ff33);
       hpBar.setName('hpBar');
       c.add([body, hpBar]);
       this.enemySprites.set(enemy.id, c);

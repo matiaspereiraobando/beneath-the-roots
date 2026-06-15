@@ -49,12 +49,12 @@ For `review` status: tell the agent *"pick queen frame 3"* or browse candidates 
 
 | Asset | Tool | Job ID | Status | Local path | Manual override |
 |-------|------|--------|--------|------------|-----------------|
-| Tunnel tileset | create_sidescroller_tileset | `a0f9842a-581b-4977-9289-a6ee077bcaf6` | processing | — | — |
-| Queen | create_1_direction_object | `a3716da9-32c2-42ee-a26a-183d9add8933` | processing | — | — |
-| Acid spitter mound | create_1_direction_object | `9e004905-7e70-4cad-a091-c83bf9152647` | processing | — | — |
+| Tunnel tileset | create_sidescroller_tileset | `a0f9842a-581b-4977-9289-a6ee077bcaf6` | **completed** | `public/sprites/tunnel-tileset.png` | — |
+| Queen | create_1_direction_object | `2f10fb13-4f3a-49b8-99dc-66a1dd8317f7` | **completed** (picked frame 0) | `public/sprites/queen.png` | integrated |
+| Acid spitter mound | create_1_direction_object | `6a0a0bd0-92d0-4fe6-bf0b-2ffdc0d952ab` | **completed** (picked frame 12) | `public/sprites/spitter.png` | integrated |
 | Crusher sac | create_1_direction_object | _pending_ | queued | — | — |
-| Worker ant | create_1_direction_object | `247a7830-ee87-4469-946d-6226133eeb8f` | processing | — | — |
-| Skitter enemy | create_1_direction_object | `c82f5116-9dad-4983-8490-ae8a3c1e8b0b` | processing | — | — |
+| Worker ant | create_1_direction_object | `f30132e3-e0e7-4114-8306-3872ff890106` | **completed** (picked frame 0) | `public/sprites/worker.png` | integrated |
+| Skitter enemy | create_1_direction_object | `d73a9004-604a-4cf8-bf2f-c9c481701d96` | **completed** (picked frame 15) | `public/sprites/skitter.png` | integrated |
 
 ## Integration workflow
 
