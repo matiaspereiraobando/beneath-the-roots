@@ -107,15 +107,11 @@ export class WaveManager {
   }
 
   private updateEnemies(dt: number): void {
-    const toRemove: string[] = [];
-
-    for (const enemy of this.state.enemies) {
+    for (const enemy of [...this.state.enemies]) {
       enemy.pathProgress += enemy.speed * dt;
       const pos = this.pathFollower.getPositionAtProgress(enemy.pathProgress);
       if (!pos) {
-        toRemove.push(enemy.id);
-        this.state.damageQueen(enemy.damage * TUNING.breachDamageMultiplier);
-        this.state.emit('enemyReachedEnd', enemy);
+        this.removeBreachedEnemy(enemy);
         continue;
       }
 
@@ -130,16 +126,23 @@ export class WaveManager {
           this.state.emit('mineTriggered', mine);
           if (enemy.hp <= 0) {
             this.killEnemy(enemy);
-            toRemove.push(enemy.id);
           }
         }
       }
     }
+  }
 
-    this.state.enemies = this.state.enemies.filter((e) => !toRemove.includes(e.id));
+  private removeBreachedEnemy(enemy: { id: string; damage: number }): void {
+    if (!this.state.enemies.some((e) => e.id === enemy.id)) return;
+    this.state.enemies = this.state.enemies.filter((e) => e.id !== enemy.id);
+    this.state.waveEnemiesRemaining--;
+    this.state.damageQueen(enemy.damage * TUNING.breachDamageMultiplier);
+    this.state.emit('enemyReachedEnd', enemy);
   }
 
   killEnemy(enemy: { id: string; reward: number }): void {
+    if (!this.state.enemies.some((e) => e.id === enemy.id)) return;
+    this.state.enemies = this.state.enemies.filter((e) => e.id !== enemy.id);
     this.state.addBiomass(enemy.reward);
     this.state.waveEnemiesRemaining--;
     this.state.emit('enemyKilled', enemy);
@@ -151,7 +154,6 @@ export class WaveManager {
     enemy.hp -= damage;
     if (enemy.hp <= 0) {
       this.killEnemy(enemy);
-      this.state.enemies = this.state.enemies.filter((e) => e.id !== enemyId);
     } else if (pierce > 0) {
       const behind = this.state.enemies
         .filter((e) => e.pathProgress > enemy.pathProgress && e.id !== enemyId)
@@ -160,7 +162,6 @@ export class WaveManager {
         behind[i].hp -= damage * 0.6;
         if (behind[i].hp <= 0) {
           this.killEnemy(behind[i]);
-          this.state.enemies = this.state.enemies.filter((e) => e.id !== behind[i].id);
         }
       }
     }

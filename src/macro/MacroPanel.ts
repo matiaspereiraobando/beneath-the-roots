@@ -48,8 +48,8 @@ export class MacroPanel extends Phaser.GameObjects.Container {
       this.redraw();
     });
     state.on('enemySpawned', () => this.syncEnemies());
-    state.on('enemyKilled', () => this.syncEnemies());
-    state.on('enemyReachedEnd', () => this.syncEnemies());
+    state.on('enemyKilled', (enemy: { id: string }) => this.removeEnemySprite(enemy.id));
+    state.on('enemyReachedEnd', (enemy: { id: string }) => this.removeEnemySprite(enemy.id));
     state.on('towerPlaced', () => this.syncTowers());
     state.on('towerUpgraded', () => this.syncTowers());
     state.on('digStarted', () => this.redraw());
@@ -313,6 +313,13 @@ export class MacroPanel extends Phaser.GameObjects.Container {
       g.fillStyle(COLORS.acid, 0.5);
       g.fillCircle(Number(xs), Number(ys), 12 * (job.progress / job.duration));
     }
+  }
+
+  private removeEnemySprite(id: string): void {
+    const container = this.enemySprites.get(id);
+    if (!container) return;
+    container.destroy();
+    this.enemySprites.delete(id);
   }
 
   private syncEnemies(): void {

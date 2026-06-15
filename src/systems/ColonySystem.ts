@@ -172,6 +172,7 @@ export class ColonySystem {
     tower.soldiers++;
     this.state.unassignedSoldiers--;
     this.state.emit('towerUpgraded', tower);
+    this.state.emit('antsChanged', this.state.antPool);
     return true;
   }
 
@@ -181,6 +182,7 @@ export class ColonySystem {
     tower.soldiers--;
     this.state.unassignedSoldiers++;
     this.state.emit('towerUpgraded', tower);
+    this.state.emit('antsChanged', this.state.antPool);
     return true;
   }
 
