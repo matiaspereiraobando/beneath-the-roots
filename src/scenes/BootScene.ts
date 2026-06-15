@@ -6,6 +6,13 @@ export class BootScene extends Phaser.Scene {
     super('Boot');
   }
 
+  preload(): void {
+    this.load.image('queen', '/sprites/queen.png');
+    this.load.image('spitter', '/sprites/spitter.png');
+    this.load.image('worker', '/sprites/worker.png');
+    this.load.image('tunnel-tileset', '/sprites/tunnel-tileset.png');
+  }
+
   create(): void {
     const g = this.add.graphics();
     g.fillStyle(COLORS.dirt, 1);

@@ -26,6 +26,8 @@ export class MicroPanel extends Phaser.GameObjects.Container {
   private crackGfx: Phaser.GameObjects.Graphics;
   private pulseTween: Phaser.Tweens.Tween | null = null;
 
+  private queenSprite: Phaser.GameObjects.Image | null = null;
+
   constructor(scene: Phaser.Scene, state: GameState) {
     super(scene, MACRO_WIDTH, 0);
     this.gameState = state;
@@ -43,6 +45,11 @@ export class MicroPanel extends Phaser.GameObjects.Container {
 
     this.queenGfx = scene.add.graphics();
     this.crackGfx = scene.add.graphics();
+    if (scene.textures.exists('queen')) {
+      this.queenSprite = scene.add.image(MICRO_WIDTH / 2, 58, 'queen');
+      this.queenSprite.setDisplaySize(56, 56);
+      this.add(this.queenSprite);
+    }
     this.drawQueen();
     this.add([this.queenGfx, this.crackGfx]);
 
@@ -124,15 +131,19 @@ export class MicroPanel extends Phaser.GameObjects.Container {
   private drawQueen(): void {
     const g = this.queenGfx;
     g.clear();
-    const cx = MICRO_WIDTH / 2;
-    const cy = 55;
     const satPct = this.gameState.queenSatiety / TUNING.queenSatietyMax;
-    const color = satPct < 0.3 ? 0x662233 : COLORS.queen;
 
-    g.fillStyle(color, 1);
-    g.fillEllipse(cx, cy, 50, 36);
-    g.fillStyle(COLORS.queenGlow, 0.4);
-    g.fillEllipse(cx, cy - 4, 30, 20);
+    if (this.queenSprite) {
+      this.queenSprite.setTint(satPct < 0.3 ? 0xaa6666 : 0xffffff);
+    } else {
+      const cx = MICRO_WIDTH / 2;
+      const cy = 55;
+      const color = satPct < 0.3 ? 0x662233 : COLORS.queen;
+      g.fillStyle(color, 1);
+      g.fillEllipse(cx, cy, 50, 36);
+      g.fillStyle(COLORS.queenGlow, 0.4);
+      g.fillEllipse(cx, cy - 4, 30, 20);
+    }
 
     if (satPct < TUNING.queenStarveThreshold / 100) {
       if (!this.pulseTween) {
@@ -167,7 +178,14 @@ export class MicroPanel extends Phaser.GameObjects.Container {
   }
 
   private spawnAntVisual(type: AntType): void {
-    const ant = this.scene.add.circle(MICRO_WIDTH / 2, 90, 4, ANT_COLORS[type]);
+    const color = ANT_COLORS[type];
+    let ant: Phaser.GameObjects.Image | Phaser.GameObjects.Arc;
+    if (type === 'gatherer' && this.scene.textures.exists('worker')) {
+      ant = this.scene.add.image(MICRO_WIDTH / 2, 90, 'worker');
+      ant.setDisplaySize(16, 16);
+    } else {
+      ant = this.scene.add.circle(MICRO_WIDTH / 2, 90, 4, color);
+    }
     this.add(ant);
     this.scene.tweens.add({
       targets: ant,
