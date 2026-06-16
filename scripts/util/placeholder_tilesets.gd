@@ -54,8 +54,7 @@ static func build_macro_tileset(tile_size: int = 16) -> TileSet:
 	for i in MACRO_TILE_COUNT:
 		var tile_data := atlas.get_tile_data(Vector2i(i, 0), 0)
 		var walkable := i in [
-			MacroTile.SURFACE, MacroTile.TUNNEL, MacroTile.BUILD,
-			MacroTile.CITADEL, MacroTile.SPAWN
+			MacroTile.SURFACE, MacroTile.TUNNEL, MacroTile.CITADEL, MacroTile.SPAWN
 		]
 		tile_data.set_custom_data("walkable", walkable)
 		tile_data.set_custom_data("build_slot", i == MacroTile.BUILD)

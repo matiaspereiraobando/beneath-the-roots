@@ -13,29 +13,33 @@ script = ExtResource("1_world")
 
 [node name="Projectiles" type="Node2D" parent="."]
 
-[node name="TowerMenu" type="PanelContainer" parent="."]
+[node name="UILayer" type="CanvasLayer" parent="."]
+follow_viewport_enabled = true
+layer = 10
+
+[node name="TowerMenu" type="PanelContainer" parent="UILayer"]
 visible = false
 offset_right = 140.0
 offset_bottom = 72.0
 
-[node name="VBox" type="VBoxContainer" parent="TowerMenu"]
+[node name="VBox" type="VBoxContainer" parent="UILayer/TowerMenu"]
 layout_mode = 2
 
-[node name="Info" type="Label" parent="TowerMenu/VBox"]
+[node name="Info" type="Label" parent="UILayer/TowerMenu/VBox"]
 layout_mode = 2
 text = "Spitter"
 
-[node name="Buttons" type="HBoxContainer" parent="TowerMenu/VBox"]
+[node name="Buttons" type="HBoxContainer" parent="UILayer/TowerMenu/VBox"]
 layout_mode = 2
 
-[node name="AddBtn" type="Button" parent="TowerMenu/VBox/Buttons"]
+[node name="AddBtn" type="Button" parent="UILayer/TowerMenu/VBox/Buttons"]
 layout_mode = 2
 text = "+Sol"
 
-[node name="RemoveBtn" type="Button" parent="TowerMenu/VBox/Buttons"]
+[node name="RemoveBtn" type="Button" parent="UILayer/TowerMenu/VBox/Buttons"]
 layout_mode = 2
 text = "-Sol"
 
-[node name="CloseBtn" type="Button" parent="TowerMenu/VBox/Buttons"]
+[node name="CloseBtn" type="Button" parent="UILayer/TowerMenu/VBox/Buttons"]
 layout_mode = 2
 text = "X"

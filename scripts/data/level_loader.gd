@@ -28,21 +28,20 @@ static func _build_grid(data: Dictionary) -> Dictionary:
 	for x in cols:
 		cells[0][x] = PlaceholderTilesets.MacroTile.SKY
 		cells[1][x] = PlaceholderTilesets.MacroTile.SKY
-	for x in mini(8, cols):
+	# Full grass surface row (row 2)
+	for x in cols:
 		cells[2][x] = PlaceholderTilesets.MacroTile.SURFACE
-	for x in range(8, cols):
-		cells[2][x] = PlaceholderTilesets.MacroTile.SKY
 	var spawn: Vector2i = Vector2i(data.spawnTile.x, data.spawnTile.y)
 	cells[spawn.y][spawn.x] = PlaceholderTilesets.MacroTile.SPAWN
-	var build_set := {}
-	for slot in data.get("buildSlots", []):
-		build_set[Vector2i(slot.x, slot.y)] = true
 	for pair in data.get("tunnelTiles", []):
 		var c := Vector2i(pair[0], pair[1])
-		if build_set.has(c):
-			cells[c.y][c.x] = PlaceholderTilesets.MacroTile.BUILD
+		cells[c.y][c.x] = PlaceholderTilesets.MacroTile.TUNNEL
+	for slot in data.get("buildSlots", []):
+		var c := Vector2i(slot.x, slot.y)
+		if cells[c.y][c.x] == PlaceholderTilesets.MacroTile.TUNNEL:
+			push_warning("Build slot overlaps path at (%d, %d)" % [c.x, c.y])
 		else:
-			cells[c.y][c.x] = PlaceholderTilesets.MacroTile.TUNNEL
+			cells[c.y][c.x] = PlaceholderTilesets.MacroTile.BUILD
 	var rect: Dictionary = data.citadelRect
 	for dy in rect.h:
 		for dx in rect.w:

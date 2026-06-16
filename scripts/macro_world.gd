@@ -4,11 +4,11 @@ extends Node2D
 @onready var enemies_root: Node2D = $Enemies
 @onready var towers_root: Node2D = $Towers
 @onready var projectiles_root: Node2D = $Projectiles
-@onready var tower_menu: PanelContainer = $TowerMenu
-@onready var _tower_info: Label = $TowerMenu/VBox/Info
-@onready var _add_btn: Button = $TowerMenu/VBox/Buttons/AddBtn
-@onready var _remove_btn: Button = $TowerMenu/VBox/Buttons/RemoveBtn
-@onready var _close_btn: Button = $TowerMenu/VBox/Buttons/CloseBtn
+@onready var tower_menu: PanelContainer = $UILayer/TowerMenu
+@onready var _tower_info: Label = $UILayer/TowerMenu/VBox/Info
+@onready var _add_btn: Button = $UILayer/TowerMenu/VBox/Buttons/AddBtn
+@onready var _remove_btn: Button = $UILayer/TowerMenu/VBox/Buttons/RemoveBtn
+@onready var _close_btn: Button = $UILayer/TowerMenu/VBox/Buttons/CloseBtn
 
 var _pathfinding := GridPathfinding.new()
 var _wave_manager := WaveManager.new()
@@ -41,6 +41,7 @@ func _wire_signals() -> void:
 	GameState.enemy_reached_end.connect(_on_enemy_removed)
 	GameState.tower_placed.connect(_on_tower_placed)
 	GameState.projectiles_changed.connect(_sync_projectiles)
+	GameState.soldiers_changed.connect(_on_soldiers_changed)
 	_add_btn.pressed.connect(_on_add_soldier)
 	_remove_btn.pressed.connect(_on_remove_soldier)
 	_close_btn.pressed.connect(_hide_tower_menu)
@@ -101,6 +102,15 @@ func _process(delta: float) -> void:
 	_sync_projectiles()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not event is InputEventMouseButton:
+		return
+	var mb := event as InputEventMouseButton
+	if not mb.pressed or mb.button_index != MOUSE_BUTTON_LEFT:
+		return
+	handle_world_click(get_local_mouse_position())
+
+
 func handle_world_click(world_pos: Vector2) -> void:
 	if GameState.phase == GameState.Phase.WON or GameState.phase == GameState.Phase.LOST:
 		return
@@ -119,9 +129,25 @@ func _show_tower_menu(tower: Dictionary, world_pos: Vector2) -> void:
 	_selected_tower = tower
 	tower_menu.visible = true
 	tower_menu.position = world_pos + Vector2(8, -40)
+	_refresh_tower_menu()
+
+
+func _refresh_tower_menu() -> void:
+	if _selected_tower.is_empty():
+		return
 	_tower_info.text = "Spitter  Soldiers: %d/%d" % [
-		tower.soldiers, GameTuning.TOWER_BASE_SLOTS
+		_selected_tower.soldiers, GameTuning.TOWER_BASE_SLOTS
 	]
+	_add_btn.disabled = (
+		_selected_tower.soldiers >= GameTuning.TOWER_BASE_SLOTS
+		or GameState.free_soldiers <= 0
+	)
+	_remove_btn.disabled = _selected_tower.soldiers <= 0
+
+
+func _on_soldiers_changed(_count: int) -> void:
+	if tower_menu.visible:
+		_refresh_tower_menu()
 
 
 func _hide_tower_menu() -> void:
@@ -133,14 +159,12 @@ func _on_add_soldier() -> void:
 	if _selected_tower.is_empty():
 		return
 	GameState.assign_soldier(_selected_tower)
-	_show_tower_menu(_selected_tower, tower_menu.position - Vector2(8, -40))
 
 
 func _on_remove_soldier() -> void:
 	if _selected_tower.is_empty():
 		return
 	GameState.remove_soldier(_selected_tower)
-	_show_tower_menu(_selected_tower, tower_menu.position - Vector2(8, -40))
 
 
 func _on_enemy_spawned(enemy: Dictionary) -> void:

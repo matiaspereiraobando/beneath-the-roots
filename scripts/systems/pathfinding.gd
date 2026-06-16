@@ -27,7 +27,6 @@ func setup_from_level(level: Dictionary) -> void:
 			var walkable := tile in [
 				PlaceholderTilesets.MacroTile.SURFACE,
 				PlaceholderTilesets.MacroTile.TUNNEL,
-				PlaceholderTilesets.MacroTile.BUILD,
 				PlaceholderTilesets.MacroTile.CITADEL,
 				PlaceholderTilesets.MacroTile.SPAWN,
 			]
