@@ -44,6 +44,7 @@ static func build_macro_tileset(tile_size: int = 16) -> TileSet:
 	for i in MACRO_TILE_COUNT:
 		atlas.create_tile(Vector2i(i, 0))
 	var tileset := TileSet.new()
+	tileset.tile_size = Vector2i(tile_size, tile_size)
 	tileset.add_source(atlas, 0)
 	tileset.set_custom_data_layer_name(0, "walkable")
 	tileset.set_custom_data_layer_type(0, TYPE_BOOL)

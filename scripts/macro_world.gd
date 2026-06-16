@@ -1,5 +1,6 @@
 extends Node2D
 
+@onready var camera: Camera2D = $Camera2D
 @onready var terrain: TileMapLayer = $Terrain
 @onready var enemies_root: Node2D = $Enemies
 @onready var towers_root: Node2D = $Towers
@@ -21,7 +22,8 @@ var _textures: Dictionary = {}
 
 
 func _ready() -> void:
-	terrain.tile_set = PlaceholderTilesets.build_macro_tileset()
+	terrain.tile_set = PlaceholderTilesets.build_macro_tileset(GameTuning.TILE_SIZE)
+	camera.make_current()
 	_load_textures()
 	tower_menu.visible = false
 	_wire_signals()
@@ -72,12 +74,14 @@ func _load_level() -> void:
 	_clear_children(enemies_root)
 	_clear_children(towers_root)
 	_clear_children(projectiles_root)
+	terrain.tile_set = PlaceholderTilesets.build_macro_tileset(GameTuning.TILE_SIZE)
 	_paint_level(GameState.level_data)
 	_pathfinding.setup_from_level(GameState.level_data)
 	_wave_manager.setup(_pathfinding)
 	_combat.setup(_pathfinding)
 	for tower in GameState.towers:
 		_on_tower_placed(tower)
+	_center_camera_on_spawn()
 
 
 func _paint_level(level: Dictionary) -> void:
@@ -96,10 +100,55 @@ func _paint_level(level: Dictionary) -> void:
 func _process(delta: float) -> void:
 	if GameState.level_data.is_empty():
 		return
+	_update_camera_pan(delta)
 	_wave_manager.update(delta)
 	_combat.update(delta)
 	_sync_enemy_positions()
 	_sync_projectiles()
+
+
+func _update_camera_pan(delta: float) -> void:
+	var dir := Input.get_vector(
+		&"macro_pan_left", &"macro_pan_right", &"macro_pan_up", &"macro_pan_down"
+	)
+	if dir == Vector2.ZERO:
+		return
+	camera.position += dir * GameTuning.MACRO_PAN_SPEED * delta
+	_clamp_camera()
+
+
+func _center_camera_on_spawn() -> void:
+	var spawn: Dictionary = GameState.level_data.get("spawnTile", {})
+	if spawn.is_empty():
+		return
+	camera.position = _pathfinding.tile_center(Vector2i(spawn.x, spawn.y))
+	_clamp_camera()
+
+
+func _clamp_camera() -> void:
+	var level := GameState.level_data
+	if level.is_empty():
+		return
+	var map_size := Vector2(level.gridSize.cols, level.gridSize.rows) * GameTuning.TILE_SIZE
+	var view_size := Vector2(get_viewport().size)
+	var half_view := view_size * 0.5
+	var pos := camera.position
+	pos.x = _clamp_camera_axis(pos.x, half_view.x, map_size.x)
+	pos.y = _clamp_camera_axis(pos.y, half_view.y, map_size.y)
+	camera.position = pos
+
+
+func _clamp_camera_axis(value: float, half_view: float, map_length: float) -> float:
+	var min_limit := half_view
+	var max_limit := map_length - half_view
+	if max_limit < min_limit:
+		return map_length * 0.5
+	return clampf(value, min_limit, max_limit)
+
+
+func _world_mouse_position() -> Vector2:
+	var vp := get_viewport()
+	return vp.get_canvas_transform().affine_inverse() * vp.get_mouse_position()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -108,7 +157,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	var mb := event as InputEventMouseButton
 	if not mb.pressed or mb.button_index != MOUSE_BUTTON_LEFT:
 		return
-	handle_world_click(get_local_mouse_position())
+	handle_world_click(_world_mouse_position())
 
 
 func handle_world_click(world_pos: Vector2) -> void:
@@ -171,7 +220,6 @@ func _on_enemy_spawned(enemy: Dictionary) -> void:
 	var sprite := Sprite2D.new()
 	sprite.texture = _textures.get(enemy.type, _textures.skitter)
 	sprite.position = enemy.position
-	sprite.scale = Vector2(1.5, 1.5) if enemy.type == "chitin" else Vector2(2, 2)
 	if enemy.type == "chitin":
 		sprite.modulate = Color(0.7, 0.55, 0.45)
 	enemies_root.add_child(sprite)
@@ -188,7 +236,6 @@ func _on_tower_placed(tower: Dictionary) -> void:
 	var sprite := Sprite2D.new()
 	sprite.texture = _textures.get("spitter")
 	sprite.position = _pathfinding.tile_center(Vector2i(tower.tile_x, tower.tile_y))
-	sprite.scale = Vector2(2, 2)
 	towers_root.add_child(sprite)
 	_tower_sprites[tower.id] = sprite
 
@@ -200,18 +247,20 @@ func _sync_enemy_positions() -> void:
 
 
 func _sync_projectiles() -> void:
+	var dot_size := maxi(6, int(GameTuning.TILE_SIZE * 0.375))
+	var half := dot_size * 0.5
 	var live: Dictionary = {}
 	for proj in GameState.projectiles:
 		live[proj.id] = true
 		if not _projectile_sprites.has(proj.id):
 			var dot := ColorRect.new()
-			dot.size = Vector2(6, 6)
+			dot.size = Vector2(dot_size, dot_size)
 			dot.color = Color(0.42, 1, 0.29)
-			dot.position = Vector2(proj.x - 3, proj.y - 3)
+			dot.position = Vector2(proj.x - half, proj.y - half)
 			projectiles_root.add_child(dot)
 			_projectile_sprites[proj.id] = dot
 		else:
-			_projectile_sprites[proj.id].position = Vector2(proj.x - 3, proj.y - 3)
+			_projectile_sprites[proj.id].position = Vector2(proj.x - half, proj.y - half)
 	for id in _projectile_sprites.keys():
 		if not live.has(id):
 			_projectile_sprites[id].queue_free()

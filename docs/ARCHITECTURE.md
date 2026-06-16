@@ -70,13 +70,14 @@ Control (root)
         └── PanelContainer [MicroPanel]   expands (308px)
 ```
 
-Use **container-based layout** for HUD/micro chrome. Macro gameplay runs in a **SubViewport** with `TileMapLayer` + `Node2D` entities.
+Use **container-based layout** for HUD/micro chrome. Macro gameplay runs in a **SubViewport** with `TileMapLayer` + `Node2D` entities and a **Camera2D** (WASD pan, clamped to map bounds). The viewport shows a window into the full level grid; tile size is 32px (`GameTuning.TILE_SIZE`).
 
 ## Macro map anchors
 
 - **Spawn:** top-left cave mouth (surface row)
 - **Citadel breach:** bottom-right 3×3 tiles
 - **Pathfinding:** `AStarGrid2D` on walkable tiles (static in Sprint 01)
+- **Camera:** starts centered on spawn; `macro_pan_*` input actions (WASD) pan within bounds
 
 ## Rendering
 

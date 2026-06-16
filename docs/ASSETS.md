@@ -4,10 +4,10 @@
 
 - **Tone:** Grim underground survival
 - **Palette:** Desaturated browns (#3d2e22), dark tunnels (#2a1f18), acid green attacks (#6aff4a), queen purple (#6b2d5c)
-- **Grid:** 16px base tile
-- **Macro view:** Side-view sidescroller tilemap (`assets/tilesets/macro_terrain.tres`)
+- **Grid:** Macro **32px** tiles; micro/citadel **16px** tiles
+- **Macro view:** Side-view sidescroller tilemap (`assets/tilesets/macro_terrain.tres`), scrollable via WASD
 - **Micro view:** Top-down citadel tilemap (`assets/tilesets/citadel_interior.tres`)
-- **Entities in macro:** Side-view sprites (enemies, towers) on the tilemap grid
+- **Entities in macro:** Side-view sprites at native size (scale 1,1) on the tilemap grid
 
 ## Sprite conventions
 
@@ -18,7 +18,7 @@
 | Towers / structures | 32×32 | `assets/sprites/` |
 | Queen | 48×48 | `assets/sprites/queen.png` |
 | Tunnel tileset (legacy PNG) | 16×16 | `assets/sprites/tunnel-tileset.png` |
-| Macro terrain tileset | 16×16 | `assets/tilesets/macro_terrain.tres` |
+| Macro terrain tileset | 32×32 | `assets/tilesets/macro_terrain.tres` |
 | Citadel interior tileset | 16×16 | `assets/tilesets/citadel_interior.tres` |
 | UI icons | 16×16 | `assets/sprites/ui/` |
 
