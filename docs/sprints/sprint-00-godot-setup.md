@@ -1,6 +1,6 @@
 # Sprint 00 — Godot Setup
 
-**Status:** next
+**Status:** done
 
 ## Goal
 
@@ -14,14 +14,14 @@ Runnable Godot 4 shell: menu, split-screen game scene, autoloads, docs.
 - [x] Game shell: HUD + macro/micro panels (placeholders)
 - [x] Sprites in `assets/sprites/`
 - [x] Docs updated for Godot
-- [ ] Theme resource (colors, panel styles, pixel font)
-- [ ] Macro/micro as separate scene files
-- [ ] Verify Godot MCP `run_project`
+- [x] Theme resource (colors, panel styles, pixel font)
+- [x] Macro/micro as separate scene files
+- [x] Verify Godot MCP `run_project`
 
 ## Gate
 
-- [ ] F5 runs menu; level button opens split-screen game with HUD labels updating from GameState
+- [x] F5 runs menu; level button opens split-screen game with HUD labels updating from GameState
 
 ## Files
 
-`project.godot`, `scenes/`, `scripts/autoload/`, `docs/ARCHITECTURE.md`
+`project.godot`, `scenes/`, `scripts/autoload/`, `assets/theme/game_theme.tres`, `docs/ARCHITECTURE.md`

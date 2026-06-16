@@ -6,11 +6,11 @@ const VIEWPORT_HEIGHT := 540
 const HUD_HEIGHT := 48
 const MACRO_RATIO := 0.68
 
-static func macro_width() -> int:
+func macro_width() -> int:
 	return int(VIEWPORT_WIDTH * MACRO_RATIO)
 
-static func micro_width() -> int:
+func micro_width() -> int:
 	return VIEWPORT_WIDTH - macro_width()
 
-static func panel_height() -> int:
+func panel_height() -> int:
 	return VIEWPORT_HEIGHT - HUD_HEIGHT

@@ -13,6 +13,7 @@ config/features=PackedStringArray("4.3", "GL Compatibility")
 
 GameState="*res://scripts/autoload/game_state.gd"
 GameConfig="*res://scripts/autoload/game_config.gd"
+ThemeSetup="*res://scripts/autoload/theme_setup.gd"
 
 [display]
 
@@ -20,6 +21,43 @@ window/size/viewport_width=960
 window/size/viewport_height=540
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
+
+[importer_defaults]
+
+texture={
+"compress/channel_pack": 0,
+"compress/hdr_compression": 1,
+"compress/high_quality": false,
+"compress/lossy_quality": 0.7,
+"compress/mode": 0,
+"compress/normal_map": 0,
+"detect_3d/compress_to": 1,
+"mipmaps/generate": false,
+"mipmaps/limit": -1,
+"process/fix_alpha_border": true,
+"process/hdr_as_srgb": false,
+"process/hdr_clamp_exposure": false,
+"process/normal_map_invert_y": false,
+"process/premult_alpha": false,
+"process/size_limit": 0,
+"roughness/mode": 0,
+"roughness/src_normal": ""
+}
+
+font_data_dynamic={
+"allow_system_fallback": true,
+"antialiasing": 0,
+"compress": true,
+"disable_embedded_bitmaps": true,
+"force_autohinter": false,
+"generate_mipmaps": false,
+"hinting": 0,
+"msdf_pixel_range": 8,
+"msdf_size": 48,
+"multichannel_signed_distance_field": false,
+"oversampling": 1.0,
+"subpixel_positioning": 0
+}
 
 [rendering]
 

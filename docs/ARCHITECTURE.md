@@ -7,13 +7,20 @@ project.godot          # main config, autoloads, 960×540 viewport
 scenes/
   menu.tscn            # level select
   game.tscn            # HUD + macro + micro shell
+  macro_panel.tscn     # tunnel TD panel (GameWorld anchor)
+  micro_panel.tscn     # citadel panel (queen preview)
+assets/
+  theme/game_theme.tres
+  fonts/pixel.ttf      # Silkscreen (OFL), antialiasing off
+  sprites/             # PNG sprites (PixelLab)
 scripts/
   autoload/
     game_state.gd      # singleton gameplay state + signals
     game_config.gd     # layout constants (HUD height, panel ratios)
   menu.gd
   game.gd
-assets/sprites/        # PNG sprites (PixelLab)
+  macro_panel.gd
+  micro_panel.gd
 docs/                  # design docs (source of truth)
 build/web/             # web export output (gitignored)
 ```
@@ -24,6 +31,7 @@ build/web/             # web export output (gitignored)
 |------|--------|------|
 | `GameState` | `game_state.gd` | Biomass, queen HP/satiety, phase, wave index |
 | `GameConfig` | `game_config.gd` | Viewport size, macro/micro widths |
+| `ThemeSetup` | `theme_setup.gd` | Loads theme + runtime pixel font |
 
 Panels subscribe to `GameState` signals — never duplicate state in UI scripts.
 

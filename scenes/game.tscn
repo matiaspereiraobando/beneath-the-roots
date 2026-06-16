@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://btr_game_root"]
+[gd_scene load_steps=4 format=3 uid="uid://btr_game_root"]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
+[ext_resource type="PackedScene" uid="uid://btr_macro_panel" path="res://scenes/macro_panel.tscn" id="2_macro"]
+[ext_resource type="PackedScene" uid="uid://btr_micro_panel" path="res://scenes/micro_panel.tscn" id="3_micro"]
 
 [node name="Game" type="Control"]
 layout_mode = 3
@@ -73,35 +75,8 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 0
 
-[node name="MacroPanel" type="PanelContainer" parent="Root/Content"]
+[node name="MacroPanel" parent="Root/Content" instance=ExtResource("2_macro")]
 layout_mode = 2
-size_flags_vertical = 3
 
-[node name="MacroMargin" type="MarginContainer" parent="Root/Content/MacroPanel"]
+[node name="MicroPanel" parent="Root/Content" instance=ExtResource("3_micro")]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
-
-[node name="MacroLabel" type="Label" parent="Root/Content/MacroPanel/MacroMargin"]
-layout_mode = 2
-text = "MACRO — tunnels & towers (placeholder)"
-vertical_alignment = 1
-
-[node name="MicroPanel" type="PanelContainer" parent="Root/Content"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="MicroMargin" type="MarginContainer" parent="Root/Content/MicroPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
-
-[node name="MicroLabel" type="Label" parent="Root/Content/MicroPanel/MicroMargin"]
-layout_mode = 2
-text = "CITADEL — queen & nursery (placeholder)"
-vertical_alignment = 1
