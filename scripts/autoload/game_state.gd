@@ -241,6 +241,36 @@ func queue_wave_spawns() -> void:
 			delay += group.interval
 
 
+func start_wave() -> void:
+	var waves: Array = level_data.get("waves", [])
+	if wave_index >= waves.size():
+		set_phase(Phase.WON)
+		return
+	set_phase(Phase.WAVE)
+	queue_wave_spawns()
+	wave_started.emit(wave_index)
+
+
+func finish_wave() -> void:
+	var bonus := get_wave_clear_bonus()
+	add_biomass(bonus)
+	wave_cleared.emit(bonus)
+	advance_wave_or_win()
+
+
+func add_projectile(proj: Dictionary) -> void:
+	projectiles.append(proj)
+	projectiles_changed.emit()
+
+
+func remove_projectiles(to_remove: Array) -> void:
+	if to_remove.is_empty():
+		return
+	for p in to_remove:
+		projectiles.erase(p)
+	projectiles_changed.emit()
+
+
 func has_pending_spawns() -> bool:
 	return not _spawn_queue.is_empty()
 

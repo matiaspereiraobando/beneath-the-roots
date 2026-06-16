@@ -55,13 +55,18 @@ func _load_tex(path: String) -> Texture2D:
 	return ImageTexture.create_from_image(image)
 
 
+func _clear_children(node: Node) -> void:
+	for child in node.get_children():
+		child.queue_free()
+
+
 func _load_level() -> void:
 	_enemy_sprites.clear()
 	_tower_sprites.clear()
 	_projectile_sprites.clear()
-	enemies_root.get_children().queue_free()
-	towers_root.get_children().queue_free()
-	projectiles_root.get_children().queue_free()
+	_clear_children(enemies_root)
+	_clear_children(towers_root)
+	_clear_children(projectiles_root)
 	_paint_level(GameState.level_data)
 	_pathfinding.setup_from_level(GameState.level_data)
 	_wave_manager.setup(_pathfinding)

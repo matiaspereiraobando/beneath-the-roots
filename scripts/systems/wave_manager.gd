@@ -25,13 +25,7 @@ func _update_build(delta: float) -> void:
 
 
 func _start_wave() -> void:
-	var waves: Array = GameState.level_data.get("waves", [])
-	if GameState.wave_index >= waves.size():
-		GameState.set_phase(GameState.Phase.WON)
-		return
-	GameState.set_phase(GameState.Phase.WAVE)
-	GameState.queue_wave_spawns()
-	GameState.wave_started.emit(GameState.wave_index)
+	GameState.start_wave()
 
 
 func _update_wave(delta: float) -> void:
@@ -86,7 +80,4 @@ func _check_wave_complete() -> void:
 		return
 	if not GameState.enemies.is_empty():
 		return
-	var bonus := GameState.get_wave_clear_bonus()
-	GameState.add_biomass(bonus)
-	GameState.wave_cleared.emit(bonus)
-	GameState.advance_wave_or_win()
+	GameState.finish_wave()

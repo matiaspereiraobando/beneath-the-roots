@@ -31,7 +31,7 @@ func _update_tower(tower: Dictionary, delta: float) -> void:
 		return
 	var dmg := _tower_damage(tower)
 	var fire_rate := _tower_fire_rate(tower)
-	GameState.projectiles.append({
+	GameState.add_projectile({
 		"id": GameState.next_projectile_id(),
 		"x": center.x,
 		"y": center.y,
@@ -39,7 +39,6 @@ func _update_tower(tower: Dictionary, delta: float) -> void:
 		"damage": dmg,
 		"speed": GameTuning.PROJECTILE_SPEED,
 	})
-	GameState.projectiles_changed.emit()
 	_tower_cooldowns[tid] = 1.0 / fire_rate
 
 
@@ -85,9 +84,7 @@ func _update_projectiles(delta: float) -> void:
 			if target.hp <= 0:
 				GameState.kill_enemy(target)
 	if not to_remove.is_empty():
-		for p in to_remove:
-			GameState.projectiles.erase(p)
-		GameState.projectiles_changed.emit()
+		GameState.remove_projectiles(to_remove)
 
 
 func _enemy_by_id(id: int) -> Dictionary:
