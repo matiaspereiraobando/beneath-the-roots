@@ -1,13 +1,23 @@
-; Engine configuration file — Beneath the Roots (Godot 4)
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
+
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
 config/name="Beneath the Roots"
 config/description="Dual-screen ant colony tower defense"
 run/main_scene="res://scenes/menu.tscn"
-config/features=PackedStringArray("4.3", "GL Compatibility")
+config/features=PackedStringArray("4.6", "GL Compatibility")
 
 [autoload]
 
@@ -20,7 +30,6 @@ ThemeSetup="*res://scripts/autoload/theme_setup.gd"
 window/size/viewport_width=960
 window/size/viewport_height=540
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
 
 [importer_defaults]
 
@@ -43,7 +52,6 @@ texture={
 "roughness/mode": 0,
 "roughness/src_normal": ""
 }
-
 font_data_dynamic={
 "allow_system_fallback": true,
 "antialiasing": 0,
