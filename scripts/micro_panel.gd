@@ -2,6 +2,10 @@ extends PanelContainer
 
 const AntType = preload("res://scripts/data/ant_types.gd").Type
 const EMPTY_SLOT = preload("res://scripts/data/ant_types.gd").EMPTY_SLOT
+const PixelArt = preload("res://scripts/util/pixel_art.gd")
+const SpritePaths = preload("res://scripts/util/sprite_paths.gd")
+
+const SLOT_ICON_SIZE := 36
 
 @onready var _satiety_label: Label = $Margin/VBox/SatietyLabel
 @onready var _viewport: SubViewport = $Margin/VBox/SubViewportContainer/SubViewport
@@ -16,9 +20,7 @@ var _icon_textures: Dictionary = {}
 func _ready() -> void:
 	theme_type_variation = &"MicroPanel"
 	custom_minimum_size = Vector2(GameConfig.micro_width(), GameConfig.panel_height())
-	var w := GameConfig.micro_width() - 16
-	var h := GameConfig.panel_height() - 120
-	_viewport.size = Vector2i(w, h)
+	_resize_viewport()
 	_load_icons()
 	_build_slot_buttons()
 	_feed_btn.pressed.connect(_on_feed_pressed)
@@ -30,11 +32,19 @@ func _ready() -> void:
 	call_deferred("_refresh_colony_counts")
 
 
+func _resize_viewport() -> void:
+	var w := GameConfig.micro_width() - 16
+	var h := GameConfig.panel_height() - 96
+	_viewport.size = Vector2i(w, h)
+
+
 func _load_icons() -> void:
-	_icon_textures[EMPTY_SLOT] = _load_tex("res://assets/sprites/ui/slot_empty.png")
-	_icon_textures[AntType.GATHERER] = _load_tex("res://assets/sprites/ui/icon_gatherer.png")
-	_icon_textures[AntType.BUILDER] = _load_tex("res://assets/sprites/ui/icon_builder.png")
-	_icon_textures[AntType.SOLDIER] = _load_tex("res://assets/sprites/ui/icon_soldier.png")
+	var brighten := GameTuning.UI_ICON_BRIGHTEN
+	var size := GameTuning.UI_ICON_NATIVE_SIZE
+	_icon_textures[EMPTY_SLOT] = PixelArt.load_texture(SpritePaths.ui_icon("slot_empty"), size, brighten)
+	_icon_textures[AntType.GATHERER] = PixelArt.load_texture(SpritePaths.ui_icon("icon_gatherer"), size, brighten)
+	_icon_textures[AntType.BUILDER] = PixelArt.load_texture(SpritePaths.ui_icon("icon_builder"), size, brighten)
+	_icon_textures[AntType.SOLDIER] = PixelArt.load_texture(SpritePaths.ui_icon("icon_soldier"), size, brighten)
 	if _icon_textures[EMPTY_SLOT] == null:
 		_icon_textures[EMPTY_SLOT] = _make_color_tex(Color(0.2, 0.18, 0.16))
 	if _icon_textures[AntType.GATHERER] == null:
@@ -52,7 +62,7 @@ func _load_tex(path: String) -> Texture2D:
 
 
 func _make_color_tex(color: Color) -> Texture2D:
-	var image := Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	var image := Image.create(SLOT_ICON_SIZE, SLOT_ICON_SIZE, false, Image.FORMAT_RGBA8)
 	image.fill(color)
 	return ImageTexture.create_from_image(image)
 
@@ -60,7 +70,7 @@ func _make_color_tex(color: Color) -> Texture2D:
 func _build_slot_buttons() -> void:
 	for i in GameState.NURSERY_SLOTS:
 		var btn := TextureButton.new()
-		btn.custom_minimum_size = Vector2(28, 28)
+		btn.custom_minimum_size = Vector2(SLOT_ICON_SIZE, SLOT_ICON_SIZE)
 		btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 		btn.pressed.connect(_on_slot_pressed.bind(i))
 		_slot_row.add_child(btn)

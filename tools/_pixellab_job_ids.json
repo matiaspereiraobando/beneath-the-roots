@@ -38,6 +38,59 @@
     "status": "completed",
     "output": "assets/sprites/queen_micro.png"
   },
+  "sprites_v2": {
+    "note": "Native 64x64 review packs. Poll get_object, select_object_frames(indices=[best]), download to assets/sprites/v2/",
+    "gatherer": {
+      "object_id": "ebf44a05-9689-41d8-b7fa-74d10dfd3a89",
+      "selected_frame": 9,
+      "selected_object_id": "9ce52083-67fd-4df3-b7e1-5c248f44b875",
+      "walk_animation_group": "430be9f1-4da8-4672-b913-17d43aee28c5",
+      "status": "completed",
+      "output": "assets/sprites/v2/gatherer.png",
+      "size": "64x64"
+    },
+    "builder": {
+      "object_id": "0b99a2f8-2639-41bb-9e29-3ebb5cdfde96",
+      "selected_frame": 2,
+      "selected_object_id": "7fca9cd8-7f16-4334-9d42-e3dc51605a76",
+      "walk_animation_group": "060d9b0f-3a72-4f89-a859-35aeba033692",
+      "status": "completed",
+      "output": "assets/sprites/v2/builder.png",
+      "size": "64x64"
+    },
+    "soldier": {
+      "object_id": "2e64ae34-ab4b-48ad-a22d-154ad35d42ca",
+      "selected_frame": 9,
+      "selected_object_id": "0f474bba-d380-458b-bce2-04f99926fc8c",
+      "walk_animation_group": "2584cff8-aee3-4339-8ad4-907fae9f1903",
+      "status": "completed",
+      "output": "assets/sprites/v2/soldier_micro.png",
+      "size": "64x64"
+    },
+    "queen_micro": {
+      "object_id": "0056ebe1-a3e7-4dce-b167-cbf8add03b86",
+      "selected_frame": 9,
+      "selected_object_id": "e0faf404-190f-44f0-9c90-83f9346a7773",
+      "status": "completed",
+      "output": "assets/sprites/v2/queen_micro.png",
+      "size": "64x64"
+    },
+    "ui_icons": {
+      "object_id": "50e01605-d57a-48ec-af4c-087642a60f01",
+      "status": "completed",
+      "output": "assets/sprites/ui/v2/",
+      "size": "64x64",
+      "selected": {
+        "icon_gatherer.png": "28e80dbf-652c-4e05-9cd8-e7407ef38405",
+        "icon_builder.png": "2e4f2841-f4d1-4877-b3df-ba2d4cf18e5e",
+        "icon_soldier.png": "b43992f6-397e-4402-b0c7-fefa0833bf82",
+        "icon_biomass.png": "a1f32cde-d91f-4cf5-8c7e-0c1b84c263af",
+        "icon_satiety.png": "550dd59d-51e7-4f48-a775-489bed3e1a96",
+        "slot_empty.png": "1d0c364a-f468-43ec-b17e-ff7034b7e86a",
+        "slot_filled.png": "9b6f875c-9cd6-4423-870f-ae4e382c4393"
+      }
+    }
+  },
   "ui_icons_batch": {
     "object_id": "20467f16-09e3-4aeb-becd-3458912b7017",
     "status": "review_completed",
@@ -56,6 +109,7 @@
     "tiles_pro style_images require width/height on each entry",
     "create_1_direction_object: omit size when style_images provided",
     "Download objects via https://api.pixellab.ai/mcp/objects/{id}/download (zip with rotations + animations)",
-    "Backblaze frame URLs return 403 — use object download zip"
+    "Style refs for MCP: resize to 64x64 before encode (tools/_pixellab_style_64.json) so output is native 64px not downscaled from 256px",
+    "v2 sprites: use size=64 without style_images OR style_images at 64x64 — never upscale 16px legacy in production"
   ]
 }

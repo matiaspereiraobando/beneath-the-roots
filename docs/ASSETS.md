@@ -4,7 +4,7 @@
 
 - **Tone:** Grim underground survival
 - **Palette:** Desaturated browns (#3d2e22), dark tunnels (#2a1f18), acid green attacks (#6aff4a), queen purple (#6b2d5c)
-- **Grid:** Macro **32px** tiles; micro/citadel **16px** tiles
+- **Grid:** Macro **32px** tiles; micro/citadel **32px** tiles (16px PixelLab sources upscaled at runtime)
 - **Macro view:** Side-view tilemap — [`macro_basic_tiles.png`](assets/tilesets/macro_basic_tiles.png) + [`macro_terrain_atlas.png`](assets/tilesets/macro_terrain_atlas.png), scrollable via WASD
 - **Micro view:** Top-down citadel tilemap (`assets/tilesets/citadel_interior.png`, 16px)
 - **Entities in macro:** Side-view sprites at native size (scale 1,1) on the tilemap grid
@@ -14,8 +14,8 @@
 | Asset | Size | Path |
 |-------|------|------|
 | Ants (macro worker, soldier) | 16×16 | `assets/sprites/` |
-| Ants (micro top-down) | 16×16 | `assets/sprites/gatherer.png`, `builder.png`, `soldier_micro.png` |
-| Ant walk sheets | 16×N | `assets/sprites/ants/*_walk.png` |
+| Ants (micro top-down) | 64×64 native (v2) | `assets/sprites/v2/` (fallback: legacy 16px upscaled) |
+| Ant walk sheets | 64×N | `assets/sprites/v2/ants/` |
 | Queen (macro) | 48×48 | `assets/sprites/queen.png` |
 | Queen (micro room) | 32×32 | `assets/sprites/queen_micro.png` |
 | Enemies | 24×32 | `assets/sprites/` |
@@ -125,6 +125,20 @@ For `review` status: tell the agent *"pick queen frame 3"* or browse candidates 
 | UI icons (8) | create_1_direction_object batch | see `tools/_pixellab_job_ids.json` | **completed** | `assets/sprites/ui/*.png` |
 
 Download: `https://api.pixellab.ai/mcp/objects/{object_id}/download` (zip includes walk frames).
+
+### Sprite v2 batch (native 64×64, in progress)
+
+Queued to fix muddy downscaled look from legacy 16px assets. Each job returns **16 review candidates** — pick the crispest frame.
+
+| Asset | Job ID | Output |
+|-------|--------|--------|
+| Gatherer | `ebf44a05-9689-41d8-b7fa-74d10dfd3a89` | `assets/sprites/v2/gatherer.png` |
+| Builder | `0b99a2f8-2639-41bb-9e29-3ebb5cdfde96` | `assets/sprites/v2/builder.png` |
+| Soldier | `2e64ae34-ab4b-48ad-a22d-154ad35d42ca` | `assets/sprites/v2/soldier_micro.png` |
+| Queen micro | `0056ebe1-a3e7-4dce-b167-cbf8add03b86` | `assets/sprites/v2/queen_micro.png` |
+| UI icons (8) | `50e01605-d57a-48ec-af4c-087642a60f01` | `assets/sprites/ui/v2/` |
+
+Loader prefers `v2/` paths automatically (`scripts/util/sprite_paths.gd`). Citadel tileset: user hand-painting nursery tiles.
 
 ## Integration workflow
 

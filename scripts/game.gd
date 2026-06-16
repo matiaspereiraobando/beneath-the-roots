@@ -1,5 +1,8 @@
 extends Control
 
+const PixelArt = preload("res://scripts/util/pixel_art.gd")
+const SpritePaths = preload("res://scripts/util/sprite_paths.gd")
+
 @onready var _phase_label: Label = $Root/HUD/HudMargin/HudRow/PhaseLabel
 @onready var _soldiers_label: Label = $Root/HUD/HudMargin/HudRow/SoldiersRow/SoldiersLabel
 @onready var _biomass_icon: TextureRect = $Root/HUD/HudMargin/HudRow/BiomassRow/BiomassIcon
@@ -23,21 +26,15 @@ func _ready() -> void:
 
 
 func _load_hud_icons() -> void:
-	_biomass_icon.texture = _load_icon("res://assets/sprites/ui/icon_biomass.png")
-	_satiety_icon.texture = _load_icon("res://assets/sprites/ui/icon_satiety.png")
-	_soldiers_icon.texture = _load_icon("res://assets/sprites/ui/icon_soldier.png")
+	var icon_size := GameTuning.HUD_ICON_SIZE
+	var brighten := GameTuning.UI_ICON_BRIGHTEN
+	_biomass_icon.texture = PixelArt.load_texture(SpritePaths.ui_icon("icon_biomass"), icon_size, brighten)
+	_satiety_icon.texture = PixelArt.load_texture(SpritePaths.ui_icon("icon_satiety"), icon_size, brighten)
+	_soldiers_icon.texture = PixelArt.load_texture(SpritePaths.ui_icon("icon_soldier"), icon_size, brighten)
 	for icon in [_biomass_icon, _satiety_icon, _soldiers_icon]:
-		icon.custom_minimum_size = Vector2(16, 16)
+		icon.custom_minimum_size = Vector2(icon_size, icon_size)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-
-
-func _load_icon(path: String) -> Texture2D:
-	if ResourceLoader.exists(path):
-		return load(path) as Texture2D
-	var image := Image.create(16, 16, false, Image.FORMAT_RGBA8)
-	image.fill(Color(0.4, 0.35, 0.3))
-	return ImageTexture.create_from_image(image)
 
 
 func _refresh_hud() -> void:
