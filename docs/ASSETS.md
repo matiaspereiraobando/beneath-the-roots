@@ -6,22 +6,25 @@
 - **Palette:** Desaturated browns (#3d2e22), dark tunnels (#2a1f18), acid green attacks (#6aff4a), queen purple (#6b2d5c)
 - **Grid:** Macro **32px** tiles; micro/citadel **16px** tiles
 - **Macro view:** Side-view tilemap — [`macro_basic_tiles.png`](assets/tilesets/macro_basic_tiles.png) + [`macro_terrain_atlas.png`](assets/tilesets/macro_terrain_atlas.png), scrollable via WASD
-- **Micro view:** Top-down citadel tilemap (`assets/tilesets/citadel_interior.tres`)
+- **Micro view:** Top-down citadel tilemap (`assets/tilesets/citadel_interior.png`, 16px)
 - **Entities in macro:** Side-view sprites at native size (scale 1,1) on the tilemap grid
 
 ## Sprite conventions
 
 | Asset | Size | Path |
 |-------|------|------|
-| Ants (worker, soldier) | 16×16 | `assets/sprites/` |
+| Ants (macro worker, soldier) | 16×16 | `assets/sprites/` |
+| Ants (micro top-down) | 16×16 | `assets/sprites/gatherer.png`, `builder.png`, `soldier_micro.png` |
+| Ant walk sheets | 16×N | `assets/sprites/ants/*_walk.png` |
+| Queen (macro) | 48×48 | `assets/sprites/queen.png` |
+| Queen (micro room) | 32×32 | `assets/sprites/queen_micro.png` |
 | Enemies | 24×32 | `assets/sprites/` |
 | Towers / structures | 32×32 | `assets/sprites/` |
-| Queen | 48×48 | `assets/sprites/queen.png` |
 | Tunnel tileset (legacy PNG) | 16×16 | `assets/sprites/tunnel-tileset.png` |
 | Macro basic tiles | 32×32 ×16 | `assets/tilesets/macro_basic_tiles.png` |
 | Macro dirt autotile atlas | 32×32 ×256 | `assets/tilesets/macro_terrain_atlas.png` |
-| Citadel interior tileset | 16×16 | `assets/tilesets/citadel_interior.tres` |
-| UI icons | 16×16 | `assets/sprites/ui/` |
+| Citadel interior tileset | 16×16 ×6 | `assets/tilesets/citadel_interior.png` |
+| UI icons | 32×32 | `assets/sprites/ui/` |
 
 ## Macro terrain atlases (hand-drawn)
 
@@ -52,6 +55,23 @@ SW=32    S=16   SE=8
 
 Loader: [`scripts/util/macro_tileset.gd`](../scripts/util/macro_tileset.gd)  
 Painter: [`scripts/systems/macro_terrain_painter.gd`](../scripts/systems/macro_terrain_painter.gd)
+
+## Citadel interior (PixelLab, Sprint 02)
+
+**Atlas** (`citadel_interior.png`, 96×16) — indices 0–5:
+
+| Index | Room tile |
+|-------|-----------|
+| 0 | Dark chitin floor |
+| 1 | Wall border |
+| 2 | Nursery (green eggs) |
+| 3 | Armory |
+| 4 | Queen chamber |
+| 5 | Corridor |
+
+Loader: [`scripts/util/citadel_tileset.gd`](../scripts/util/citadel_tileset.gd)
+
+Style lock: all three refs in `assets/raw/style_refs/` passed as `style_images` on every PixelLab job.
 
 Logic cell enum order (`macro_tiles.gd`) differs from basic atlas columns for spawn/citadel; the painter maps `SPAWN` → atlas 5 and `CITADEL` → atlas 6.
 
@@ -93,6 +113,19 @@ For `review` status: tell the agent *"pick queen frame 3"* or browse candidates 
 | Worker ant | create_1_direction_object | `f30132e3-e0e7-4114-8306-3872ff890106` | **completed** (picked frame 0) | `assets/sprites/worker.png` | integrated |
 | Skitter enemy | create_1_direction_object | `d73a9004-604a-4cf8-bf2f-c9c481701d96` | **completed** (picked frame 15) | `assets/sprites/skitter.png` | integrated |
 
+### Sprint 02 — micro citadel + UI (style refs)
+
+| Asset | Tool | Job ID | Status | Local path |
+|-------|------|--------|--------|------------|
+| Citadel 6-pack | create_tiles_pro | `d018220a-082e-48e6-9795-508cdf357cb0` | **completed** | `assets/tilesets/citadel_interior.png` |
+| Gatherer ant | create_1_direction_object | `558b724f-1c15-46d7-a960-c7959e5af3ba` | **completed** + walk | `assets/sprites/gatherer.png`, `ants/gatherer_walk.png` |
+| Builder ant | create_1_direction_object | `f2622b34-5aa8-49dc-be8e-97be2eeb517b` | **completed** + walk | `assets/sprites/builder.png`, `ants/builder_walk.png` |
+| Soldier ant (micro) | create_1_direction_object | `2d3a0bdd-25c9-42c0-bbba-de6211bacda2` | **completed** + walk | `assets/sprites/soldier_micro.png`, `ants/soldier_walk.png` |
+| Queen (micro) | create_1_direction_object | `4235e5f9-5a89-4360-9534-e6694076d1f7` | **completed** | `assets/sprites/queen_micro.png` |
+| UI icons (8) | create_1_direction_object batch | see `tools/_pixellab_job_ids.json` | **completed** | `assets/sprites/ui/*.png` |
+
+Download: `https://api.pixellab.ai/mcp/objects/{object_id}/download` (zip includes walk frames).
+
 ## Integration workflow
 
 1. Queue job via PixelLab MCP → record UUID above
@@ -108,4 +141,4 @@ For `review` status: tell the agent *"pick queen frame 3"* or browse candidates 
 
 ## Current state
 
-Game uses **hand-drawn macro terrain** (`macro_basic_tiles.png` + `macro_terrain_atlas.png`) and **PixelLab sprites** where integrated; micro citadel still uses colored placeholders.
+Game uses **hand-drawn macro terrain** and **PixelLab sprites** for entities. Micro citadel uses `citadel_interior.png` tile atlas, top-down ant sprites, and UI icon sheet from Sprint 02 PixelLab jobs (style-locked via `assets/raw/style_refs/`).

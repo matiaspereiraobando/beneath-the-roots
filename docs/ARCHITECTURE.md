@@ -23,16 +23,19 @@ scripts/
     game_config.gd     # layout constants
     theme_setup.gd
   data/
-    game_tuning.gd     # autoload: combat constants
+    game_tuning.gd     # autoload: combat + colony constants
+    ant_types.gd       # GATHERER / BUILDER / SOLDIER enum
     level_loader.gd
   systems/
     pathfinding.gd     # AStarGrid2D
     wave_manager.gd
     combat_system.gd
+    colony_system.gd   # satiety, queen spawn, gatherers
     macro_terrain_painter.gd  # dirt autotile mask painting
   util/
     macro_tileset.gd         # macro TileSet from PNG atlases
-    placeholder_tilesets.gd  # micro citadel placeholders only
+    citadel_tileset.gd       # micro citadel TileSet from PNG atlas
+    placeholder_tilesets.gd  # fallback colors if PNG missing
   macro_world.gd
   citadel_world.gd
   macro_panel.gd
@@ -49,7 +52,7 @@ build/web/
 |------|--------|------|
 | `GameState` | `game_state.gd` | Biomass, queen HP/satiety, phase, entities, signals |
 | `GameConfig` | `game_config.gd` | Viewport size, macro/micro widths |
-| `GameTuning` | `game_tuning.gd` | Spitter/enemy/soldier constants |
+| `GameTuning` | `game_tuning.gd` | Spitter/enemy/soldier + colony tuning |
 | `ThemeSetup` | `theme_setup.gd` | Theme + runtime pixel font |
 
 Panels subscribe to `GameState` signals — never duplicate state in UI scripts.
@@ -74,6 +77,10 @@ Control (root)
 
 Use **container-based layout** for HUD/micro chrome. Macro gameplay runs in a **SubViewport** with `TileMapLayer` + `Node2D` entities and a **Camera2D** (WASD pan, clamped to map bounds). The viewport shows a window into the full level grid; tile size is 32px (`GameTuning.TILE_SIZE`).
 
+`macro_world.gd` ticks **wave_manager**, **combat_system**, and **colony_system** each frame.
+
+Micro citadel (`citadel_world.gd`) paints room tiles from `citadel_tileset.gd`, shows `queen_micro.png`, and wanders ant sprites in nursery/armory/corridor rects. Nursery UI in `micro_panel.gd` drives `GameState.nursery_queue` and feed actions.
+
 Macro visuals: logic grid in `level_data.cells` → `MacroTerrainPainter` picks basic tiles or dirt autotile masks (tunnel-neighbor bitmask) → `MacroTileset` atlas sources.
 
 ## Macro map anchors
@@ -89,15 +96,15 @@ Macro visuals: logic grid in `level_data.cells` → `MacroTerrainPainter` picks 
 - Web export: **GL Compatibility** renderer only
 - Integer viewport scale for pixel art
 
-## Planned systems (sprints)
+## Systems
 
-| System | Script (planned) |
-|--------|------------------|
-| Path follower | `scripts/systems/path_follower.gd` |
-| Wave manager | `scripts/systems/wave_manager.gd` |
-| Combat | `scripts/systems/combat_system.gd` |
-| Colony | `scripts/systems/colony_system.gd` |
-| Level data | `resources/levels/*.tres` or JSON |
+| System | Script | Status |
+|--------|--------|--------|
+| Pathfinding | `scripts/systems/pathfinding.gd` | Sprint 01 |
+| Wave manager | `scripts/systems/wave_manager.gd` | Sprint 01 |
+| Combat | `scripts/systems/combat_system.gd` | Sprint 01 (+ starve penalty Sprint 02) |
+| Colony | `scripts/systems/colony_system.gd` | Sprint 02 |
+| Macro terrain | `scripts/systems/macro_terrain_painter.gd` | Sprint 01 |
 
 ## Level format
 

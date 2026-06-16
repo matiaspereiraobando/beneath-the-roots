@@ -44,11 +44,19 @@ theme_override_constants/margin_bottom = 4
 
 [node name="HudRow" type="HBoxContainer" parent="Root/HUD/HudMargin"]
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/separation = 16
 
-[node name="BiomassLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
+[node name="BiomassRow" type="HBoxContainer" parent="Root/HUD/HudMargin/HudRow"]
 layout_mode = 2
-text = "Biomass: 0"
+theme_override_constants/separation = 4
+
+[node name="BiomassIcon" type="TextureRect" parent="Root/HUD/HudMargin/HudRow/BiomassRow"]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+
+[node name="BiomassLabel" type="Label" parent="Root/HUD/HudMargin/HudRow/BiomassRow"]
+layout_mode = 2
+text = "0"
 
 [node name="WaveLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
 layout_mode = 2
@@ -58,9 +66,17 @@ text = "Wave: 1"
 layout_mode = 2
 text = "BUILD"
 
-[node name="SoldiersLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
+[node name="SoldiersRow" type="HBoxContainer" parent="Root/HUD/HudMargin/HudRow"]
 layout_mode = 2
-text = "Soldiers: 0"
+theme_override_constants/separation = 4
+
+[node name="SoldiersIcon" type="TextureRect" parent="Root/HUD/HudMargin/HudRow/SoldiersRow"]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+
+[node name="SoldiersLabel" type="Label" parent="Root/HUD/HudMargin/HudRow/SoldiersRow"]
+layout_mode = 2
+text = "0"
 
 [node name="Spacer" type="Control" parent="Root/HUD/HudMargin/HudRow"]
 layout_mode = 2
@@ -70,9 +86,17 @@ size_flags_horizontal = 3
 layout_mode = 2
 text = "Queen HP: 100"
 
-[node name="SatietyLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
+[node name="SatietyRow" type="HBoxContainer" parent="Root/HUD/HudMargin/HudRow"]
 layout_mode = 2
-text = "Satiety: 100"
+theme_override_constants/separation = 4
+
+[node name="SatietyIcon" type="TextureRect" parent="Root/HUD/HudMargin/HudRow/SatietyRow"]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+
+[node name="SatietyLabel" type="Label" parent="Root/HUD/HudMargin/HudRow/SatietyRow"]
+layout_mode = 2
+text = "100"
 
 [node name="Content" type="HBoxContainer" parent="Root"]
 layout_mode = 2

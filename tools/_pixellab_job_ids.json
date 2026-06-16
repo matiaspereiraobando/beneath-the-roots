@@ -1,0 +1,61 @@
+{
+  "style_refs": [
+    "assets/raw/style_refs/beneath_the_roots-style_ref_01.png",
+    "assets/raw/style_refs/beneath_the_roots-style_ref_02.png",
+    "assets/raw/style_refs/beneath_the_roots-style_ref_03.png"
+  ],
+  "tiles_pro": {
+    "tile_id": "d018220a-082e-48e6-9795-508cdf357cb0",
+    "status": "completed",
+    "output": "assets/tilesets/citadel_interior.png",
+    "notes": "Zip contained 2 unique tiles; assembled 6-wide atlas in bootstrap"
+  },
+  "gatherer": {
+    "object_id": "558b724f-1c15-46d7-a960-c7959e5af3ba",
+    "status": "completed",
+    "output": "assets/sprites/gatherer.png",
+    "walk_output": "assets/sprites/ants/gatherer_walk.png",
+    "animation_group": "7b752758-7449-4ed1-97e7-524461f45b50"
+  },
+  "builder": {
+    "object_id": "f2622b34-5aa8-49dc-be8e-97be2eeb517b",
+    "status": "completed",
+    "output": "assets/sprites/builder.png",
+    "walk_animation_group": "ca9218f1-9f0a-4b08-80b1-c39490c108ed",
+    "walk_output": "assets/sprites/ants/builder_walk.png",
+    "walk_status": "completed"
+  },
+  "soldier": {
+    "object_id": "2d3a0bdd-25c9-42c0-bbba-de6211bacda2",
+    "status": "completed",
+    "output": "assets/sprites/soldier_micro.png",
+    "walk_animation_group": "d0736546-a355-4901-87fe-d1f05e9346e1",
+    "walk_output": "assets/sprites/ants/soldier_walk.png",
+    "walk_status": "completed"
+  },
+  "queen_micro": {
+    "object_id": "4235e5f9-5a89-4360-9534-e6694076d1f7",
+    "status": "completed",
+    "output": "assets/sprites/queen_micro.png"
+  },
+  "ui_icons_batch": {
+    "object_id": "20467f16-09e3-4aeb-becd-3458912b7017",
+    "status": "review_completed",
+    "selected": {
+      "icon_gatherer.png": "630196e4-1e26-47a8-82df-a68e5af9b614",
+      "icon_builder.png": "a41a345d-55b1-424f-8777-8eee6c534cc0",
+      "icon_soldier.png": "f84e60ae-a5d2-4689-8d43-25a850ba6aac",
+      "feed_btn.png": "5abdc268-cd5d-4df3-92cf-803950760f71",
+      "icon_biomass.png": "b16b40cc-02f0-4183-86c7-1e34b5ce3b82",
+      "icon_satiety.png": "75e112b4-44e1-43c0-8153-d6a00ac1e958",
+      "slot_empty.png": "5de06d0e-1c96-47d4-b11f-57be07a37c29",
+      "slot_filled.png": "cdaedb43-dda0-4617-9428-eec276ef795a"
+    }
+  },
+  "notes": [
+    "tiles_pro style_images require width/height on each entry",
+    "create_1_direction_object: omit size when style_images provided",
+    "Download objects via https://api.pixellab.ai/mcp/objects/{id}/download (zip with rotations + animations)",
+    "Backblaze frame URLs return 403 — use object download zip"
+  ]
+}

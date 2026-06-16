@@ -51,7 +51,10 @@ func _tower_damage(tower: Dictionary) -> float:
 
 
 func _tower_fire_rate(tower: Dictionary) -> float:
-	return GameTuning.SPITTER_FIRE_RATE * (1.0 + tower.soldiers * GameTuning.SOLDIER_FIRE_RATE_BONUS)
+	var rate: float = GameTuning.SPITTER_FIRE_RATE * (1.0 + tower.soldiers * GameTuning.SOLDIER_FIRE_RATE_BONUS)
+	if GameState.queen_satiety < GameTuning.STARVE_THRESHOLD:
+		rate *= GameTuning.STARVE_FIRE_RATE_MULT
+	return rate
 
 
 func _find_target(from: Vector2, range_px: float) -> Dictionary:

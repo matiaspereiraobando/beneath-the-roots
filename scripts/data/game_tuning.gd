@@ -17,6 +17,20 @@ const SOLDIER_FIRE_RATE_BONUS := 0.15
 
 const PROJECTILE_SPEED := 400.0
 
+const GATHERER_BIOMASS_INTERVAL := 2.0
+const GATHERER_BIOMASS_AMOUNT := 3
+
+const QUEEN_SPAWN_INTERVAL := 10.0
+const WELL_FED_SPAWN_MULT := 0.65
+const SATIETY_DECAY_RATE := 4.0
+const FEED_COST := 15
+const FEED_RESTORE := 35.0
+const AUTO_FEED_THRESHOLD := 50.0
+const AUTO_FEED_EFFICIENCY := 0.5
+const WELL_FED_THRESHOLD := 70.0
+const STARVE_THRESHOLD := 30.0
+const STARVE_FIRE_RATE_MULT := 0.65
+
 const ENEMY_STATS := {
 	"skitter": {"hp": 30, "speed": 110.0, "damage": 8, "reward": 8},
 	"chitin": {"hp": 80, "speed": 60.0, "damage": 15, "reward": 15},
