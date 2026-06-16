@@ -1,5 +1,15 @@
+# Godot
+.godot/
+*.import
+build/
+export/
+
+# Node / Vite (legacy)
 node_modules/
 dist/
+.vite/
+
+# OS / env
 .env
 *.log
 .DS_Store

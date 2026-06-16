@@ -1,0 +1,72 @@
+[gd_scene load_steps=2 format=3 uid="uid://btr_menu_root"]
+
+[ext_resource type="Script" path="res://scripts/menu.gd" id="1_menu"]
+
+[node name="Menu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0392157, 0.0313725, 0.0235294, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "BENEATH THE ROOTS"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "Defend the tunnels. Keep the queen alive."
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="Center/VBox"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+
+[node name="Level1Button" type="Button" parent="Center/VBox"]
+custom_minimum_size = Vector2(280, 44)
+layout_mode = 2
+text = "1. Shallow Breach"
+
+[node name="Level2Button" type="Button" parent="Center/VBox"]
+custom_minimum_size = Vector2(280, 44)
+layout_mode = 2
+text = "2. Forked Tunnels"
+
+[node name="Level3Button" type="Button" parent="Center/VBox"]
+custom_minimum_size = Vector2(280, 44)
+layout_mode = 2
+text = "3. Deep Choke"
+
+[node name="TestButton" type="Button" parent="Center/VBox"]
+custom_minimum_size = Vector2(280, 36)
+layout_mode = 2
+text = "[Dev Test Level]"
+
+[node name="Hint" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "Click to select a level"
+horizontal_alignment = 1

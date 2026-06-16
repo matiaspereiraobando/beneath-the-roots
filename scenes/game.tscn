@@ -1,0 +1,107 @@
+[gd_scene load_steps=2 format=3 uid="uid://btr_game_root"]
+
+[ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
+
+[node name="Game" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_game")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0392157, 0.0313725, 0.0235294, 1)
+
+[node name="Root" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="HUD" type="PanelContainer" parent="Root"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+
+[node name="HudMargin" type="MarginContainer" parent="Root/HUD"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 4
+
+[node name="HudRow" type="HBoxContainer" parent="Root/HUD/HudMargin"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="BiomassLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
+layout_mode = 2
+text = "Biomass: 0"
+
+[node name="WaveLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
+layout_mode = 2
+text = "Wave: 1"
+
+[node name="PhaseLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
+layout_mode = 2
+text = "BUILD"
+
+[node name="Spacer" type="Control" parent="Root/HUD/HudMargin/HudRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="QueenHpLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
+layout_mode = 2
+text = "Queen HP: 100"
+
+[node name="SatietyLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
+layout_mode = 2
+text = "Satiety: 100"
+
+[node name="Content" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="MacroPanel" type="PanelContainer" parent="Root/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MacroMargin" type="MarginContainer" parent="Root/Content/MacroPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="MacroLabel" type="Label" parent="Root/Content/MacroPanel/MacroMargin"]
+layout_mode = 2
+text = "MACRO — tunnels & towers (placeholder)"
+vertical_alignment = 1
+
+[node name="MicroPanel" type="PanelContainer" parent="Root/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MicroMargin" type="MarginContainer" parent="Root/Content/MicroPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="MicroLabel" type="Label" parent="Root/Content/MicroPanel/MicroMargin"]
+layout_mode = 2
+text = "CITADEL — queen & nursery (placeholder)"
+vertical_alignment = 1

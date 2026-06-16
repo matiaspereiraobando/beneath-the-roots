@@ -1,99 +1,72 @@
-# Architecture — Beneath the Roots
+# Architecture — Beneath the Roots (Godot)
 
-## Stack
+## Project layout
 
-- **Phaser 3.90** + **TypeScript** + **Vite**
-- Resolution: 960×540, pixelArt render mode
-- Deploy: static `dist/` → itch.io HTML5
+```
+project.godot          # main config, autoloads, 960×540 viewport
+scenes/
+  menu.tscn            # level select
+  game.tscn            # HUD + macro + micro shell
+scripts/
+  autoload/
+    game_state.gd      # singleton gameplay state + signals
+    game_config.gd     # layout constants (HUD height, panel ratios)
+  menu.gd
+  game.gd
+assets/sprites/        # PNG sprites (PixelLab)
+docs/                  # design docs (source of truth)
+build/web/             # web export output (gitignored)
+```
+
+## Autoloads
+
+| Name | Script | Role |
+|------|--------|------|
+| `GameState` | `game_state.gd` | Biomass, queen HP/satiety, phase, wave index |
+| `GameConfig` | `game_config.gd` | Viewport size, macro/micro widths |
+
+Panels subscribe to `GameState` signals — never duplicate state in UI scripts.
 
 ## Scene flow
 
 ```
-BootScene → MenuScene → GameScene
+menu.tscn  --(level selected)-->  game.tscn
+game.tscn  --(ESC)-->            menu.tscn
 ```
 
-## GameState (singleton)
-
-`src/state/GameState.ts` is the single source of truth. Extends `Phaser.Events.EventEmitter`.
-
-Panels and systems subscribe to events; they do not own gameplay state.
-
-### Key events
-
-| Event | Payload | When |
-|-------|---------|------|
-| `biomassChanged` | number | Biomass pool changes |
-| `queenHpChanged` | hp, maxHp | Queen damaged |
-| `queenSatietyChanged` | number | Satiety changes |
-| `phaseChanged` | 'build' \| 'wave' \| 'won' \| 'lost' | Phase transition |
-| `waveChanged` | index | Wave index updates |
-| `antsChanged` | antPool | Ant counts change |
-| `queueChanged` | AntType[] | Nursery queue changes |
-| `enemySpawned` | EnemyInstance | New enemy |
-| `enemyKilled` | enemy | Enemy died |
-| `enemyReachedEnd` | enemy | Breach |
-| `breach` | damage | Queen damaged (VFX) |
-| `towerPlaced` | TowerDefinition | Tower built |
-| `towerUpgraded` | TowerDefinition | Soldier/upgrade |
-| `digStarted` / `digComplete` | job | Dig progress |
-| `buildStarted` / `buildComplete` | job/tower | Build progress |
-| `minePlaced` / `mineTriggered` | mine | Mine lifecycle |
-| `gameWon` / `gameLost` | — | End state |
-
-## Systems (updated each frame in GameScene)
-
-| System | File | Responsibility |
-|--------|------|----------------|
-| WaveManager | `systems/WaveManager.ts` | Build/wave phases, spawning, breach |
-| CombatSystem | `systems/CombatSystem.ts` | Tower targeting, projectiles, damage |
-| ColonySystem | `systems/ColonySystem.ts` | Satiety, spawn queue, gatherers, dig/build |
-| PathFollower | `systems/PathFollower.ts` | Enemy path math |
-
-## UI
-
-| Component | File | Panel |
-|-----------|------|-------|
-| HUD | `ui/HUD.ts` | Top bar |
-| MacroPanel | `macro/MacroPanel.ts` | Left TD view |
-| MicroPanel | `micro/MicroPanel.ts` | Right citadel |
-
-## Level data
-
-JSON in `src/data/levels/`. Loaded via `src/data/levels/index.ts`.
-
-```typescript
-interface LevelData {
-  id: string;
-  name: string;
-  queenMaxHp: number;
-  path: PathPoint[];
-  preDugNodes: PathPoint[];
-  softEarth: Rect[];
-  deposits: PathPoint[];
-  waves: WaveDefinition[];
-  startingBiomass?: number;
-  hints?: string[];
-}
-```
-
-## Balance
-
-All tunable numbers in `src/data/tuning.ts`.
-
-## Folder structure
+## UI layout (game.tscn)
 
 ```
-src/
-├── main.ts           # Phaser game config
-├── config.ts         # Resolution, colors
-├── state/GameState.ts
-├── scenes/           # Boot, Menu, Game
-├── systems/          # Wave, Combat, Colony, Path
-├── macro/MacroPanel.ts
-├── micro/MicroPanel.ts
-├── ui/HUD.ts
-└── data/
-    ├── types.ts
-    ├── tuning.ts
-    └── levels/
+Control (root)
+└── VBoxContainer
+    ├── PanelContainer [HUD]     min height 48px
+    └── HBoxContainer [Content]
+        ├── PanelContainer [MacroPanel]   min width 652px
+        └── PanelContainer [MicroPanel]   expands (308px)
 ```
+
+Use **container-based layout** for all UI. Game-world elements (path, enemies, towers) will live inside MacroPanel as `Node2D` sub-scenes later.
+
+## Rendering
+
+- `default_texture_filter = Nearest` in project.godot
+- Web export: **GL Compatibility** renderer only
+- Integer viewport scale for pixel art
+
+## Planned systems (sprints)
+
+| System | Script (planned) |
+|--------|------------------|
+| Path follower | `scripts/systems/path_follower.gd` |
+| Wave manager | `scripts/systems/wave_manager.gd` |
+| Combat | `scripts/systems/combat_system.gd` |
+| Colony | `scripts/systems/colony_system.gd` |
+| Level data | `resources/levels/*.tres` or JSON |
+
+## Level format
+
+Port from Phaser prototype JSON in tag `phaser-prototype-v1` → Godot `Resource` or JSON under `data/levels/`.
+
+## Previous prototype
+
+Phaser + TypeScript implementation archived at git tag **`phaser-prototype-v1`**.

@@ -1,0 +1,27 @@
+; Engine configuration file — Beneath the Roots (Godot 4)
+
+config_version=5
+
+[application]
+
+config/name="Beneath the Roots"
+config/description="Dual-screen ant colony tower defense"
+run/main_scene="res://scenes/menu.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+
+[autoload]
+
+GameState="*res://scripts/autoload/game_state.gd"
+GameConfig="*res://scripts/autoload/game_config.gd"
+
+[display]
+
+window/size/viewport_width=960
+window/size/viewport_height=540
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+renderer/rendering_method="gl_compatibility"
