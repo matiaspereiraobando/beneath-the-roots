@@ -1,6 +1,6 @@
 # Sprint 03 — Colony Systems
 
-**Status:** complete
+**Status:** next
 
 ## Goal
 
@@ -8,17 +8,17 @@ Full macro interaction set, level 1 complete with all structure types.
 
 ## Tasks
 
-- [x] Dig soft-earth → build node
-- [x] All towers: Spitter, Crusher, Needle, Gland
-- [x] Fungal mines (path, rearm per build phase)
-- [x] Gatherers on deposits
-- [x] Tower upgrades (2 tiers)
-- [x] Soldier assign via tower click menu
-- [x] Level 1 JSON (6 waves)
+- [ ] Dig soft-earth → build node
+- [ ] All towers: Spitter, Crusher, Needle, Gland
+- [ ] Fungal mines (path, rearm per build phase)
+- [ ] Gatherers on deposits
+- [ ] Tower upgrades (2 tiers)
+- [ ] Soldier assign via tower click menu
+- [ ] Level 1 JSON (6 waves)
 
 ## Gate
 
-- [x] Level 1 start-to-finish with all structure types
+- [ ] Level 1 start-to-finish with all structure types
 
 ## Files touched
 

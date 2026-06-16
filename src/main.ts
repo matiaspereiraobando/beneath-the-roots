@@ -3,6 +3,7 @@ import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/GameScene';
 import { GAME_HEIGHT, GAME_WIDTH } from './config';
+import { setupPixelArt } from './pixelArt';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -12,13 +13,15 @@ const config: Phaser.Types.Core.GameConfig = {
   backgroundColor: '#0a0806',
   scene: [BootScene, MenuScene, GameScene],
   scale: {
-    mode: Phaser.Scale.FIT,
+    mode: Phaser.Scale.NONE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   render: {
     pixelArt: true,
     antialias: false,
+    roundPixels: true,
   },
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+setupPixelArt(game);

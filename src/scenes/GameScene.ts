@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, HUD_HEIGHT } from '../config';
+import { createUiText } from '../ui/createUiText';
 import { getLevelById } from '../data/levels/index';
 import { GameState } from '../state/GameState';
 import { PathFollower } from '../systems/PathFollower';
@@ -64,6 +65,9 @@ export class GameScene extends Phaser.Scene {
     this.state.on('gameLost', () => this.showOverlay('THE QUEEN HAS FALLEN', '#cc3333'));
     this.state.on('waveStarted', (idx: number) => {
       this.showBanner(`WAVE ${idx + 1}`);
+      if (idx === 0) {
+        this.hud.showTransientHint('Feed the queen during waves to keep towers firing at full rate', 6000);
+      }
     });
 
     this.input.keyboard?.on('keydown-ESC', () => {
@@ -77,20 +81,20 @@ export class GameScene extends Phaser.Scene {
       this.scene.restart({ levelId: this.state.level?.id });
     });
 
-    const pauseHint = this.add.text(GAME_WIDTH - 8, GAME_HEIGHT - 8, 'SPACE: skip build | R: restart', {
-      fontSize: '9px',
-      color: COLORS.textDim,
-    }).setOrigin(1);
-    pauseHint.setDepth(100);
+    createUiText(this, GAME_WIDTH - 8, GAME_HEIGHT - 8, 'SPACE: skip build | R: restart', 16, COLORS.textDim, {
+      originX: 1,
+      originY: 1,
+      depth: 100,
+    });
   }
 
   private showBanner(text: string): void {
-    const banner = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, text, {
-      fontSize: '28px',
-      color: '#cc4444',
-      fontStyle: 'bold',
-    }).setOrigin(0.5).setAlpha(0);
-    banner.setDepth(50);
+    const banner = createUiText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, text, 40, '#cc4444', {
+      originX: 0.5,
+      originY: 0.5,
+      depth: 50,
+    });
+    banner.setAlpha(0);
     this.tweens.add({
       targets: banner,
       alpha: 1,
@@ -104,22 +108,25 @@ export class GameScene extends Phaser.Scene {
   private showOverlay(text: string, color: string): void {
     const bg = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.7);
     bg.setDepth(90);
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20, text, {
-      fontSize: '32px',
-      color,
-      fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(91);
+    createUiText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20, text, 44, color, {
+      originX: 0.5,
+      originY: 0.5,
+      depth: 91,
+    });
 
-    const menuBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, 'Main Menu', {
-      fontSize: '18px',
-      color: COLORS.text,
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(91);
+    const menuBtn = createUiText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, 'Main Menu', 26, COLORS.text, {
+      originX: 0.5,
+      originY: 0.5,
+      depth: 91,
+    });
+    menuBtn.setInteractive({ useHandCursor: true });
     menuBtn.on('pointerdown', () => this.scene.start('Menu'));
 
-    const retryBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80, 'Retry', {
-      fontSize: '18px',
-      color: COLORS.text,
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(91);
+    const retryBtn = createUiText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80, 'Retry', 26, COLORS.text, {
+      originX: 0.5,
+      originY: 0.5,
+      depth: 91,
+    });
     retryBtn.on('pointerdown', () => this.scene.restart({ levelId: this.state.level?.id }));
   }
 

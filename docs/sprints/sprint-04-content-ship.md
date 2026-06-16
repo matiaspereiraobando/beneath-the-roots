@@ -1,6 +1,6 @@
 # Sprint 04 — Content + Ship
 
-**Status:** complete
+**Status:** pending
 
 ## Goal
 
@@ -8,20 +8,20 @@ Shippable itch.io build with 3 levels and polish.
 
 ## Tasks
 
-- [x] Level 2 (forked path) + Level 3 (long choke)
-- [x] Enemy types: skitter, chitin, scarab
-- [x] Balance in `tuning.ts`
-- [x] Main menu + level select
-- [x] Grim juice: breach shake, wave banners, queen damage flash
-- [x] Mute button, SPACE skip build, R restart
-- [x] `npm run build` → dist/
+- [ ] Level 2 (forked path) + Level 3 (long choke)
+- [ ] Enemy types: skitter, chitin, scarab
+- [ ] Balance in `tuning.ts`
+- [ ] Main menu + level select
+- [ ] Grim juice: breach shake, wave banners, queen damage flash
+- [ ] Mute button, SPACE skip build, R restart
+- [ ] `npm run build` → dist/
 - [ ] PixelLab sprite integration (as jobs complete)
 - [ ] itch.io upload (manual step)
 
 ## Gate
 
-- [x] 3 levels playable from menu
-- [x] HTML5 build in `dist/`
+- [ ] 3 levels playable from menu
+- [ ] HTML5 build in `dist/`
 
 ## Files touched
 

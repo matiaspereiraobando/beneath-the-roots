@@ -15,11 +15,17 @@ Both panels live simultaneously with meaningful coupling.
 - [x] Starvation debuff / well-fed spawn buff
 - [x] Breach VFX on micro (shake, cracks, red flash)
 - [x] Ant walk visual from citadel to macro
+- [x] UI clarity: satiety effects on HUD/citadel, tower stat menu, first-wave hint
 
 ## Gate
 
 - [x] Level 1 playable with both panels — feeding matters during waves
 
+## Deferred to Sprint 4
+
+- Biomass economy balance
+- Full DPS overlays on tower sprites / range circles
+
 ## Files touched
 
-`src/micro/MicroPanel.ts`, `src/systems/ColonySystem.ts`, `src/ui/HUD.ts`
+`src/micro/MicroPanel.ts`, `src/systems/ColonySystem.ts`, `src/ui/HUD.ts`, `src/ui/statLabels.ts`, `src/macro/MacroPanel.ts`

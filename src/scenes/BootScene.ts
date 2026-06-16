@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS } from '../config';
+import { applyNearestFilter } from '../pixelArt';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -15,6 +16,8 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
+    applyNearestFilter(this.game);
+
     const g = this.add.graphics();
     g.fillStyle(COLORS.dirt, 1);
     g.fillRect(0, 0, 16, 16);

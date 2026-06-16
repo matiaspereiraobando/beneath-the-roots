@@ -1,10 +1,13 @@
 import Phaser from 'phaser';
 import { COLORS, MACRO_WIDTH, PANEL_HEIGHT } from '../config';
+import { createUiText, createUiTextBlock } from '../ui/createUiText';
 import type { GameState } from '../state/GameState';
 import type { ColonySystem } from '../systems/ColonySystem';
 import { PathFollower } from '../systems/PathFollower';
 import type { LevelData, MinePlacement, TowerDefinition, TowerType } from '../data/types';
 import { TUNING } from '../data/tuning';
+import { formatTowerStats } from '../ui/statLabels';
+import { scaleSpriteToSize } from '../pixelArt';
 
 export class MacroPanel extends Phaser.GameObjects.Container {
   private gameState: GameState;
@@ -101,16 +104,21 @@ export class MacroPanel extends Phaser.GameObjects.Container {
       { label: 'Mine', type: 'mine' },
     ];
     items.forEach((item, i) => {
-      const btn = this.scene.add.rectangle(i * 72 + 30, 0, 64, 28, COLORS.dirt);
+      const bx = i * 72 + 30;
+      const btn = this.scene.add.rectangle(bx, 0, 64, 28, COLORS.dirt);
       btn.setStrokeStyle(1, COLORS.dirtLight);
       btn.setInteractive({ useHandCursor: true });
-      const txt = this.scene.add.text(i * 72 + 30, 0, item.label, { fontSize: '10px', color: COLORS.text }).setOrigin(0.5);
       btn.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
         pointer.event.stopPropagation();
         this.selectedBuild = item.type;
         this.highlightToolbar(item.type);
       });
-      this.buildToolbar.add([btn, txt]);
+      this.buildToolbar.add(btn);
+      createUiText(this.scene, bx, 0, item.label, 11, COLORS.text, {
+        originX: 0.5,
+        originY: 0.5,
+        parent: this.buildToolbar,
+      });
     });
   }
 
@@ -177,8 +185,7 @@ export class MacroPanel extends Phaser.GameObjects.Container {
   }
 
   private flashMessage(text: string, x: number, y: number, color = '#cc4444'): void {
-    const msg = this.scene.add.text(x, y - 24, text, { fontSize: '11px', color }).setOrigin(0.5);
-    this.add(msg);
+    const msg = createUiText(this.scene, x, y - 24, text, 18, color, { originX: 0.5, originY: 0.5, parent: this });
     this.scene.tweens.add({ targets: msg, y: y - 40, alpha: 0, duration: 1200, onComplete: () => msg.destroy() });
   }
 
@@ -222,12 +229,36 @@ export class MacroPanel extends Phaser.GameObjects.Container {
     const existing = this.getByName('towerMenu');
     existing?.destroy();
 
-    const menu = this.scene.add.container(x, y - 40);
+    const tower = this.gameState.towers.find((t) => t.id === towerId);
+    if (!tower) return;
+
+    const menu = this.scene.add.container(x, y - 68);
     menu.setName('towerMenu');
     menu.setDepth(50);
 
+    const panel = this.scene.add.rectangle(0, 0, 200, 96, 0x1a1210, 0.96);
+    panel.setStrokeStyle(1, COLORS.dirtLight, 0.8);
+    menu.add(panel);
+
+    const statsTxt = createUiTextBlock(
+      this.scene,
+      0,
+      -40,
+      formatTowerStats(this.gameState, tower).split('\n'),
+      10,
+      '#cccccc',
+      { originX: 0.5, originY: 0, maxWidth: 188, lineSpacing: 4, parent: menu },
+    );
+    statsTxt.setName('towerStats');
+
+    const refreshStats = () => {
+      const t = this.gameState.towers.find((tw) => tw.id === towerId);
+      if (t) statsTxt.setText(formatTowerStats(this.gameState, t));
+    };
+
     const addBtn = (label: string, ox: number, fn: () => boolean | void) => {
-      const b = this.scene.add.rectangle(ox, 0, 28, 20, COLORS.dirtLight);
+      const b = this.scene.add.rectangle(ox, 30, 32, 22, COLORS.dirtLight);
+      b.setStrokeStyle(1, COLORS.dirt, 0.8);
       b.setInteractive({ useHandCursor: true });
       b.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
         pointer.event.stopPropagation();
@@ -238,18 +269,19 @@ export class MacroPanel extends Phaser.GameObjects.Container {
           const t = this.gameState.towers.find((tw) => tw.id === towerId);
           this.flashMessage(`Soldiers: ${t?.soldiers ?? 0}`, x, y, '#6aff4a');
         }
+        refreshStats();
         this.syncTowers();
       });
-      const t = this.scene.add.text(ox, 0, label, { fontSize: '12px', color: '#fff' }).setOrigin(0.5);
-      menu.add([b, t]);
+      menu.add(b);
+      createUiText(this.scene, ox, 30, label, 12, '#fff', { originX: 0.5, originY: 0.5, parent: menu });
     };
 
-    addBtn('+', -35, () => this.colony.assignSoldier(towerId));
-    addBtn('-', -5, () => { this.colony.removeSoldier(towerId); return true; });
-    addBtn('^', 25, () => { this.colony.upgradeTower(towerId); return true; });
+    addBtn('+', -44, () => this.colony.assignSoldier(towerId));
+    addBtn('-', 0, () => { this.colony.removeSoldier(towerId); return true; });
+    addBtn('^', 44, () => { this.colony.upgradeTower(towerId); return true; });
 
     this.add(menu);
-    this.scene.time.delayedCall(3000, () => menu.destroy());
+    this.scene.time.delayedCall(5000, () => menu.destroy());
   }
 
   redraw(): void {
@@ -337,7 +369,7 @@ export class MacroPanel extends Phaser.GameObjects.Container {
       let body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image;
       if (enemy.type === 'skitter' && this.scene.textures.exists('skitter')) {
         body = this.scene.add.image(0, 0, 'skitter');
-        body.setDisplaySize(22, 22);
+        scaleSpriteToSize(body, 24);
       } else {
         body = this.scene.add.rectangle(0, 0, 18, 14, stats.color);
       }
@@ -358,17 +390,17 @@ export class MacroPanel extends Phaser.GameObjects.Container {
       let body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image;
       if (tower.type === 'spitter' && this.scene.textures.exists('spitter')) {
         body = this.scene.add.image(0, 0, 'spitter');
-        body.setDisplaySize(32, 32);
+        scaleSpriteToSize(body, 32);
       } else {
         body = this.scene.add.rectangle(0, 0, 28, 28, stats.color);
         (body as Phaser.GameObjects.Rectangle).setStrokeStyle(2, 0xffffff, 0.3);
       }
-      const label = tower.type === 'spitter' && this.scene.textures.exists('spitter')
-        ? null
-        : this.scene.add.text(0, 0, tower.type[0].toUpperCase(), { fontSize: '10px', color: '#fff' }).setOrigin(0.5);
-      const slots = this.scene.add.text(0, 14, `⚔${tower.soldiers}`, { fontSize: '8px', color: COLORS.text }).setOrigin(0.5);
-      if (label) c.add([body, label, slots]);
-      else c.add([body, slots]);
+      const hasSpitterArt = tower.type === 'spitter' && this.scene.textures.exists('spitter');
+      if (!hasSpitterArt) {
+        createUiText(this.scene, 0, 0, tower.type[0].toUpperCase(), 16, '#fff', { originX: 0.5, originY: 0.5, parent: c });
+      }
+      createUiText(this.scene, 0, 14, `S${tower.soldiers}`, 14, COLORS.text, { originX: 0.5, originY: 0.5, parent: c });
+      c.add(body);
       if (tower.type === 'gland') {
         const aura = this.scene.add.circle(0, 0, stats.range, stats.color, 0.1);
         c.addAt(aura, 0);

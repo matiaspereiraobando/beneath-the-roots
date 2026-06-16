@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
 import { COLORS, MACRO_WIDTH, MICRO_WIDTH, PANEL_HEIGHT } from '../config';
+import { createUiText, setUiTextColor } from '../ui/createUiText';
 import type { GameState } from '../state/GameState';
 import type { AntType } from '../data/types';
 import { TUNING } from '../data/tuning';
+import { getSatietyEffect } from '../ui/statLabels';
+import { scaleSpriteToSize } from '../pixelArt';
 
 const ANT_LABELS: Record<AntType, string> = {
   gatherer: 'G',
@@ -20,6 +23,7 @@ export class MicroPanel extends Phaser.GameObjects.Container {
   private gameState: GameState;
   private queueSlots: Phaser.GameObjects.Container[] = [];
   private antCountText: Phaser.GameObjects.Text;
+  private satietyEffectText: Phaser.GameObjects.Text;
   private warehouseText: Phaser.GameObjects.Text;
   private feedBtn: Phaser.GameObjects.Container;
   private queenGfx: Phaser.GameObjects.Graphics;
@@ -36,38 +40,38 @@ export class MicroPanel extends Phaser.GameObjects.Container {
     bg.setStrokeStyle(2, COLORS.queen, 0.3);
     this.add(bg);
 
-    const title = scene.add.text(MICRO_WIDTH / 2, 12, 'CITADEL', {
-      fontSize: '11px',
-      color: COLORS.textDim,
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
-    this.add(title);
+    createUiText(scene, MICRO_WIDTH / 2, 12, 'CITADEL', 18, COLORS.textDim, { originX: 0.5, originY: 0.5, parent: this });
 
     this.queenGfx = scene.add.graphics();
     this.crackGfx = scene.add.graphics();
     if (scene.textures.exists('queen')) {
       this.queenSprite = scene.add.image(MICRO_WIDTH / 2, 58, 'queen');
-      this.queenSprite.setDisplaySize(56, 56);
+      scaleSpriteToSize(this.queenSprite, 56);
       this.add(this.queenSprite);
     }
     this.drawQueen();
     this.add([this.queenGfx, this.crackGfx]);
 
-    this.feedBtn = this.createButton(MICRO_WIDTH / 2, 100, 'FEED QUEEN', () => {
+    this.feedBtn = this.createButton(MICRO_WIDTH / 2, 98, 'FEED QUEEN', () => {
       if (this.gameState.feedQueen(true)) {
         this.scene.cameras.main.flash(100, 100, 80, 40, false, undefined, 0.15);
       }
     });
     this.add(this.feedBtn);
 
-    const feedCost = scene.add.text(MICRO_WIDTH / 2, 125, `Cost: ${TUNING.queenFeedCost} biomass`, {
-      fontSize: '9px',
-      color: COLORS.textDim,
-    }).setOrigin(0.5);
-    this.add(feedCost);
+    createUiText(scene, MICRO_WIDTH / 2, 118, `Cost: ${TUNING.queenFeedCost} biomass`, 10, COLORS.textDim, {
+      originX: 0.5,
+      originY: 0,
+      parent: this,
+    });
+    this.satietyEffectText = createUiText(scene, MICRO_WIDTH / 2, 132, '', 10, COLORS.textDim, {
+      originX: 0.5,
+      originY: 0,
+      maxWidth: MICRO_WIDTH - 16,
+      parent: this,
+    });
 
-    const nurseryLabel = scene.add.text(16, 145, 'NURSERY QUEUE', { fontSize: '10px', color: COLORS.textDim });
-    this.add(nurseryLabel);
+    createUiText(scene, 16, 154, 'NURSERY QUEUE', 11, COLORS.textDim, { parent: this });
 
     for (let i = 0; i < TUNING.nurseryQueueSize; i++) {
       const slot = this.createQueueSlot(i);
@@ -75,12 +79,13 @@ export class MicroPanel extends Phaser.GameObjects.Container {
       this.add(slot);
     }
 
-    const whLabel = scene.add.text(16, 220, 'WAREHOUSE', { fontSize: '10px', color: COLORS.textDim });
-    this.warehouseText = scene.add.text(16, 238, '', { fontSize: '12px', color: '#8b6914' });
-    this.add([whLabel, this.warehouseText]);
+    createUiText(scene, 16, 228, 'WAREHOUSE', 11, COLORS.textDim, { parent: this });
+    this.warehouseText = createUiText(scene, 16, 244, '', 12, '#8b6914', { parent: this });
 
-    this.antCountText = scene.add.text(16, 280, '', { fontSize: '11px', color: COLORS.text, lineSpacing: 4 });
-    this.add(this.antCountText);
+    this.antCountText = createUiText(scene, 16, 290, '', 11, COLORS.text, {
+      lineSpacing: 4,
+      parent: this,
+    });
 
     const door = scene.add.rectangle(0, PANEL_HEIGHT / 2, 4, 60, COLORS.queenGlow, 0.5);
     this.add(door);
@@ -88,18 +93,24 @@ export class MicroPanel extends Phaser.GameObjects.Container {
     state.on('queueChanged', () => this.refreshQueue());
     state.on('antsChanged', () => this.refreshAnts());
     state.on('biomassChanged', () => this.refreshWarehouse());
-    state.on('queenSatietyChanged', () => this.drawQueen());
+    state.on('queenSatietyChanged', () => {
+      this.drawQueen();
+      this.refreshSatietyEffect();
+    });
+    state.on('phaseChanged', () => this.refreshSatietyEffect());
     state.on('breach', () => this.onBreach());
     state.on('antSpawned', (type: AntType) => this.spawnAntVisual(type));
     state.on('levelLoaded', () => {
       this.refreshQueue();
       this.refreshAnts();
       this.refreshWarehouse();
+      this.refreshSatietyEffect();
     });
 
     this.refreshQueue();
     this.refreshAnts();
     this.refreshWarehouse();
+    this.refreshSatietyEffect();
 
     this.setDepth(10);
   }
@@ -110,21 +121,24 @@ export class MicroPanel extends Phaser.GameObjects.Container {
     bg.setStrokeStyle(1, COLORS.queenGlow);
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerdown', onClick);
-    const txt = this.scene.add.text(0, 0, label, { fontSize: '11px', color: '#fff' }).setOrigin(0.5);
-    c.add([bg, txt]);
+    c.add(bg);
+    createUiText(this.scene, 0, 0, label, 11, '#fff', { originX: 0.5, originY: 0.5, parent: c });
     return c;
   }
 
   private createQueueSlot(index: number): Phaser.GameObjects.Container {
-    const c = this.scene.add.container(20 + index * 52, 170);
+    const c = this.scene.add.container(20 + index * 52, 172);
     const bg = this.scene.add.rectangle(0, 0, 44, 36, COLORS.dirt);
     bg.setStrokeStyle(1, COLORS.dirtLight);
+    bg.setName('bg');
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerdown', () => this.gameState.cycleQueueSlot(index));
-    const txt = this.scene.add.text(0, 0, '?', { fontSize: '14px', color: '#fff' }).setOrigin(0.5);
+    c.add(bg);
+    const txt = createUiText(this.scene, 0, 0, '?', 14, '#fff', { originX: 0.5, originY: 0.5, parent: c });
     txt.setName('label');
-    const sub = this.scene.add.text(0, 14, index === 0 ? 'NEXT' : '', { fontSize: '7px', color: COLORS.textDim }).setOrigin(0.5);
-    c.add([bg, txt, sub]);
+    if (index === 0) {
+      createUiText(this.scene, 0, 22, 'NEXT', 9, COLORS.textDim, { originX: 0.5, originY: 0, parent: c });
+    }
     return c;
   }
 
@@ -182,7 +196,7 @@ export class MicroPanel extends Phaser.GameObjects.Container {
     let ant: Phaser.GameObjects.Image | Phaser.GameObjects.Arc;
     if (type === 'gatherer' && this.scene.textures.exists('worker')) {
       ant = this.scene.add.image(MICRO_WIDTH / 2, 90, 'worker');
-      ant.setDisplaySize(16, 16);
+      scaleSpriteToSize(ant, 16);
     } else {
       ant = this.scene.add.circle(MICRO_WIDTH / 2, 90, 4, color);
     }
@@ -202,7 +216,7 @@ export class MicroPanel extends Phaser.GameObjects.Container {
       const slot = this.queueSlots[i];
       const txt = slot.getByName('label') as Phaser.GameObjects.Text;
       txt.setText(ANT_LABELS[type]);
-      const bg = slot.list[0] as Phaser.GameObjects.Rectangle;
+      const bg = slot.getByName('bg') as Phaser.GameObjects.Rectangle;
       bg.setFillStyle(ANT_COLORS[type]);
     });
   }
@@ -212,6 +226,12 @@ export class MicroPanel extends Phaser.GameObjects.Container {
     this.antCountText.setText(
       `Gatherers: ${p.gatherer}\nBuilders: ${p.builder}\nSoldiers: ${p.soldier} (${this.gameState.unassignedSoldiers} free)`,
     );
+  }
+
+  private refreshSatietyEffect(): void {
+    const fx = getSatietyEffect(this.gameState);
+    this.satietyEffectText.setText(fx.text);
+    setUiTextColor(this.satietyEffectText, fx.color);
   }
 
   private refreshWarehouse(): void {
