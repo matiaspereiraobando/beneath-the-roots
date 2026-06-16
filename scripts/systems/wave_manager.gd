@@ -35,16 +35,14 @@ func _update_wave(delta: float) -> void:
 
 
 func _try_spawn(delta: float) -> void:
-	var spent := delta
+	var spent: float = delta
 	while true:
-		var type := GameState.pop_ready_spawn(spent)
+		var type: String = GameState.pop_ready_spawn(spent)
 		spent = 0.0
 		if type == "":
 			break
-		var spawn := Vector2i(
-			GameState.level_data.spawnTile.x,
-			GameState.level_data.spawnTile.y
-		)
+		var spawn_data: Dictionary = GameState.level_data.spawnTile
+		var spawn := Vector2i(int(spawn_data.x), int(spawn_data.y))
 		var path := pathfinding.get_path_to_citadel(spawn)
 		if path.is_empty():
 			path = PackedVector2Array([pathfinding.tile_center(spawn)])
@@ -56,22 +54,24 @@ func _move_enemies(delta: float) -> void:
 		var path: PackedVector2Array = enemy.path
 		if path.is_empty():
 			continue
-		var remaining := enemy.speed * delta
-		while remaining > 0.0 and enemy.path_index < path.size() - 1:
-			var to: Vector2 = path[enemy.path_index + 1]
-			var dist := enemy.position.distance_to(to)
+		var remaining: float = float(enemy.speed) * delta
+		while remaining > 0.0 and int(enemy.path_index) < path.size() - 1:
+			var to: Vector2 = path[int(enemy.path_index) + 1]
+			var pos: Vector2 = enemy.position
+			var dist: float = pos.distance_to(to)
 			if dist <= remaining:
 				remaining -= dist
-				enemy.path_progress += dist
-				enemy.path_index += 1
-				enemy.position = path[enemy.path_index]
+				enemy.path_progress = float(enemy.path_progress) + dist
+				enemy.path_index = int(enemy.path_index) + 1
+				enemy.position = path[int(enemy.path_index)]
 			else:
-				enemy.position = enemy.position.lerp(to, remaining / dist)
-				enemy.path_progress += remaining
+				enemy.position = pos.lerp(to, remaining / dist)
+				enemy.path_progress = float(enemy.path_progress) + remaining
 				remaining = 0.0
-		if enemy.path_index >= path.size() - 1:
-			var cell := pathfinding.world_to_tile(enemy.position)
-			if pathfinding.is_citadel(cell) or enemy.position.distance_to(path[path.size() - 1]) < 6.0:
+		if int(enemy.path_index) >= path.size() - 1:
+			var pos: Vector2 = enemy.position
+			var cell := pathfinding.world_to_tile(pos)
+			if pathfinding.is_citadel(cell) or pos.distance_to(path[path.size() - 1]) < 6.0:
 				GameState.breach_enemy(enemy)
 
 

@@ -29,8 +29,8 @@ func _update_tower(tower: Dictionary, delta: float) -> void:
 	if target.is_empty():
 		_tower_coldowns_set(tid, 0.1)
 		return
-	var dmg := _tower_damage(tower)
-	var fire_rate := _tower_fire_rate(tower)
+	var dmg: float = _tower_damage(tower)
+	var fire_rate: float = _tower_fire_rate(tower)
 	GameState.add_projectile({
 		"id": GameState.next_projectile_id(),
 		"x": center.x,
@@ -56,13 +56,15 @@ func _tower_fire_rate(tower: Dictionary) -> float:
 
 func _find_target(from: Vector2, range_px: float) -> Dictionary:
 	var best: Dictionary = {}
-	var best_prog := -1.0
+	var best_prog: float = -1.0
 	for enemy in GameState.enemies:
-		var dist := from.distance_to(enemy.position)
+		var pos: Vector2 = enemy.position
+		var dist: float = from.distance_to(pos)
 		if dist > range_px:
 			continue
-		if enemy.path_progress > best_prog:
-			best_prog = enemy.path_progress
+		var prog: float = float(enemy.path_progress)
+		if prog > best_prog:
+			best_prog = prog
 			best = enemy
 	return best
 
@@ -70,16 +72,18 @@ func _find_target(from: Vector2, range_px: float) -> Dictionary:
 func _update_projectiles(delta: float) -> void:
 	var to_remove: Array = []
 	for proj in GameState.projectiles:
-		var target := _enemy_by_id(proj.target_id)
+		var target := _enemy_by_id(int(proj.target_id))
 		if target.is_empty():
 			to_remove.append(proj)
 			continue
-		var dir := (target.position - Vector2(proj.x, proj.y)).normalized()
-		var step := proj.speed * delta
-		proj.x += dir.x * step
-		proj.y += dir.y * step
-		if Vector2(proj.x, proj.y).distance_to(target.position) < 8.0:
-			target.hp -= proj.damage
+		var target_pos: Vector2 = target.position
+		var proj_pos := Vector2(float(proj.x), float(proj.y))
+		var dir := (target_pos - proj_pos).normalized()
+		var step: float = float(proj.speed) * delta
+		proj.x = float(proj.x) + dir.x * step
+		proj.y = float(proj.y) + dir.y * step
+		if Vector2(float(proj.x), float(proj.y)).distance_to(target_pos) < 8.0:
+			target.hp = float(target.hp) - float(proj.damage)
 			to_remove.append(proj)
 			if target.hp <= 0:
 				GameState.kill_enemy(target)
