@@ -5,7 +5,7 @@
 - **Tone:** Grim underground survival
 - **Palette:** Desaturated browns (#3d2e22), dark tunnels (#2a1f18), acid green attacks (#6aff4a), queen purple (#6b2d5c)
 - **Grid:** Macro **32px** tiles; micro/citadel **16px** tiles
-- **Macro view:** Side-view sidescroller tilemap (`assets/tilesets/macro_terrain.tres`), scrollable via WASD
+- **Macro view:** Side-view tilemap — [`macro_basic_tiles.png`](assets/tilesets/macro_basic_tiles.png) + [`macro_terrain_atlas.png`](assets/tilesets/macro_terrain_atlas.png), scrollable via WASD
 - **Micro view:** Top-down citadel tilemap (`assets/tilesets/citadel_interior.tres`)
 - **Entities in macro:** Side-view sprites at native size (scale 1,1) on the tilemap grid
 
@@ -18,9 +18,42 @@
 | Towers / structures | 32×32 | `assets/sprites/` |
 | Queen | 48×48 | `assets/sprites/queen.png` |
 | Tunnel tileset (legacy PNG) | 16×16 | `assets/sprites/tunnel-tileset.png` |
-| Macro terrain tileset | 32×32 | `assets/tilesets/macro_terrain.tres` |
+| Macro basic tiles | 32×32 ×16 | `assets/tilesets/macro_basic_tiles.png` |
+| Macro dirt autotile atlas | 32×32 ×256 | `assets/tilesets/macro_terrain_atlas.png` |
 | Citadel interior tileset | 16×16 | `assets/tilesets/citadel_interior.tres` |
 | UI icons | 16×16 | `assets/sprites/ui/` |
+
+## Macro terrain atlases (hand-drawn)
+
+**Basic row** (`macro_basic_tiles.png`, 512×32) — indices 0–15:
+
+| Index | Type |
+|-------|------|
+| 0 | Sky |
+| 1 | Surface (half grass / half dirt) |
+| 2 | Dirt (reference; map uses autotile mask 0) |
+| 3 | Tunnel |
+| 4 | Build rock |
+| 5 | Spawn |
+| 6 | Citadel |
+| 7–15 | Reserved |
+
+**Autotile grid** (`macro_terrain_atlas.png`, 512×512) — **tile index = mask** (column `mask % 16`, row `mask / 16`):
+
+```
+NW=128   N=1    NE=2
+W=64     ·      E=4
+SW=32    S=16   SE=8
+```
+
+- Mask counts **TUNNEL** neighbors only (8 directions).
+- `#FF00FF` cells = empty slot; engine picks closest valid subset mask at runtime.
+- Add new masks by painting into the atlas; rescan on load picks them up.
+
+Loader: [`scripts/util/macro_tileset.gd`](../scripts/util/macro_tileset.gd)  
+Painter: [`scripts/systems/macro_terrain_painter.gd`](../scripts/systems/macro_terrain_painter.gd)
+
+Logic cell enum order (`macro_tiles.gd`) differs from basic atlas columns for spawn/citadel; the painter maps `SPAWN` → atlas 5 and `CITADEL` → atlas 6.
 
 ## How to check if PixelLab is ready
 
@@ -75,4 +108,4 @@ For `review` status: tell the agent *"pick queen frame 3"* or browse candidates 
 
 ## Current state
 
-Game uses **real PixelLab sprites** where integrated; remaining structures use colored placeholders until art is ready.
+Game uses **hand-drawn macro terrain** (`macro_basic_tiles.png` + `macro_terrain_atlas.png`) and **PixelLab sprites** where integrated; micro citadel still uses colored placeholders.

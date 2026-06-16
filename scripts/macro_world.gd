@@ -19,10 +19,14 @@ var _tower_sprites: Dictionary = {}
 var _projectile_sprites: Dictionary = {}
 var _selected_tower: Dictionary = {}
 var _textures: Dictionary = {}
+var _macro_tileset
+var _terrain_painter
 
 
 func _ready() -> void:
-	terrain.tile_set = PlaceholderTilesets.build_macro_tileset(GameTuning.TILE_SIZE)
+	_macro_tileset = load("res://scripts/util/macro_tileset.gd").new()
+	_terrain_painter = load("res://scripts/systems/macro_terrain_painter.gd").new()
+	terrain.tile_set = _macro_tileset.tile_set
 	camera.make_current()
 	_load_textures()
 	tower_menu.visible = false
@@ -74,7 +78,8 @@ func _load_level() -> void:
 	_clear_children(enemies_root)
 	_clear_children(towers_root)
 	_clear_children(projectiles_root)
-	terrain.tile_set = PlaceholderTilesets.build_macro_tileset(GameTuning.TILE_SIZE)
+	_macro_tileset = load("res://scripts/util/macro_tileset.gd").new()
+	terrain.tile_set = _macro_tileset.tile_set
 	_paint_level(GameState.level_data)
 	_pathfinding.setup_from_level(GameState.level_data)
 	_wave_manager.setup(_pathfinding)
@@ -85,16 +90,7 @@ func _load_level() -> void:
 
 
 func _paint_level(level: Dictionary) -> void:
-	terrain.clear()
-	var cells: Array = level.cells
-	for y in cells.size():
-		for x in cells[y].size():
-			var tile: int = cells[y][x]
-			terrain.set_cell(
-				Vector2i(x, y),
-				0,
-				PlaceholderTilesets.macro_tile_to_atlas(tile)
-			)
+	_terrain_painter.paint_all(terrain, level.cells, _macro_tileset)
 
 
 func _process(delta: float) -> void:

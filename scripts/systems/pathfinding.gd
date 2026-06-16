@@ -1,6 +1,8 @@
 extends RefCounted
 class_name GridPathfinding
 
+const MacroCell = preload("res://scripts/data/macro_tiles.gd").Cell
+
 var _astar := AStarGrid2D.new()
 var _cols: int = 0
 var _rows: int = 0
@@ -25,16 +27,16 @@ func setup_from_level(level: Dictionary) -> void:
 		for x in _cols:
 			var tile: int = cells[y][x]
 			var walkable := tile in [
-				PlaceholderTilesets.MacroTile.SURFACE,
-				PlaceholderTilesets.MacroTile.TUNNEL,
-				PlaceholderTilesets.MacroTile.CITADEL,
-				PlaceholderTilesets.MacroTile.SPAWN,
+				MacroCell.SURFACE,
+				MacroCell.TUNNEL,
+				MacroCell.CITADEL,
+				MacroCell.SPAWN,
 			]
 			_astar.set_point_solid(Vector2i(x, y), not walkable)
 
 
 func rebuild(_level: Dictionary) -> void:
-	# Sprint 03: refresh grid after dig
+	# Sprint 03: refresh A* and call MacroTerrainPainter.refresh_region after dig.
 	pass
 
 

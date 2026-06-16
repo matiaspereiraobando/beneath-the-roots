@@ -15,7 +15,7 @@ scenes/
 assets/
   theme/game_theme.tres
   fonts/pixel.ttf
-  tilesets/            # PixelLab terrain (placeholder runtime for now)
+  tilesets/            # macro_basic_tiles.png, macro_terrain_atlas.png
   sprites/
 scripts/
   autoload/
@@ -29,8 +29,10 @@ scripts/
     pathfinding.gd     # AStarGrid2D
     wave_manager.gd
     combat_system.gd
+    macro_terrain_painter.gd  # dirt autotile mask painting
   util/
-    placeholder_tilesets.gd
+    macro_tileset.gd         # macro TileSet from PNG atlases
+    placeholder_tilesets.gd  # micro citadel placeholders only
   macro_world.gd
   citadel_world.gd
   macro_panel.gd
@@ -71,6 +73,8 @@ Control (root)
 ```
 
 Use **container-based layout** for HUD/micro chrome. Macro gameplay runs in a **SubViewport** with `TileMapLayer` + `Node2D` entities and a **Camera2D** (WASD pan, clamped to map bounds). The viewport shows a window into the full level grid; tile size is 32px (`GameTuning.TILE_SIZE`).
+
+Macro visuals: logic grid in `level_data.cells` → `MacroTerrainPainter` picks basic tiles or dirt autotile masks (tunnel-neighbor bitmask) → `MacroTileset` atlas sources.
 
 ## Macro map anchors
 
