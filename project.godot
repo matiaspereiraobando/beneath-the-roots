@@ -23,6 +23,7 @@ config/features=PackedStringArray("4.6", "GL Compatibility")
 
 GameState="*res://scripts/autoload/game_state.gd"
 GameConfig="*res://scripts/autoload/game_config.gd"
+GameTuning="*res://scripts/data/game_tuning.gd"
 ThemeSetup="*res://scripts/autoload/theme_setup.gd"
 
 [display]

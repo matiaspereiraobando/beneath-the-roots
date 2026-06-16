@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3 uid="uid://btr_citadel_world"]
+
+[ext_resource type="Script" path="res://scripts/citadel_world.gd" id="1_citadel"]
+
+[node name="CitadelWorld" type="Node2D"]
+script = ExtResource("1_citadel")
+
+[node name="FloorMap" type="TileMapLayer" parent="."]
+
+[node name="QueenOverlay" type="ColorRect" parent="."]
+visible = false
+offset_right = 112.0
+offset_bottom = 144.0
+color = Color(1, 0.3, 0.3, 0.5)

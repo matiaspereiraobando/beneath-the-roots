@@ -1,20 +1,20 @@
 extends Control
 
-@onready var _hud: Control = $Root/HUD
 @onready var _phase_label: Label = $Root/HUD/HudMargin/HudRow/PhaseLabel
+@onready var _soldiers_label: Label = $Root/HUD/HudMargin/HudRow/SoldiersLabel
+
 
 func _ready() -> void:
-	_hud.custom_minimum_size.y = GameConfig.HUD_HEIGHT
+	$Root/HUD.custom_minimum_size.y = GameConfig.HUD_HEIGHT
 	GameState.biomass_changed.connect(_refresh_hud)
 	GameState.phase_changed.connect(func(_p): _refresh_hud())
 	GameState.queen_hp_changed.connect(func(_c, _m): _refresh_hud())
 	GameState.queen_satiety_changed.connect(func(_s): _refresh_hud())
+	GameState.build_timer_changed.connect(func(_t): _refresh_phase_label())
+	GameState.soldiers_changed.connect(_refresh_soldiers)
 	_refresh_hud()
+	_refresh_soldiers(GameState.free_soldiers)
 
-func _process(delta: float) -> void:
-	if GameState.phase == GameState.Phase.BUILD and GameState.build_timer > 0.0:
-		GameState.build_timer = maxf(0.0, GameState.build_timer - delta)
-		_refresh_phase_label()
 
 func _refresh_hud() -> void:
 	$Root/HUD/HudMargin/HudRow/BiomassLabel.text = "Biomass: %d" % GameState.biomass
@@ -22,6 +22,11 @@ func _refresh_hud() -> void:
 	_refresh_phase_label()
 	$Root/HUD/HudMargin/HudRow/QueenHpLabel.text = "Queen HP: %d/%d" % [GameState.queen_hp, GameState.queen_max_hp]
 	$Root/HUD/HudMargin/HudRow/SatietyLabel.text = "Satiety: %d" % int(GameState.queen_satiety)
+
+
+func _refresh_soldiers(count: int) -> void:
+	_soldiers_label.text = "Soldiers: %d" % count
+
 
 func _refresh_phase_label() -> void:
 	match GameState.phase:
@@ -37,6 +42,7 @@ func _refresh_phase_label() -> void:
 		GameState.Phase.LOST:
 			_phase_label.text = "LOST"
 			_phase_label.modulate = Color(1, 0.4, 0.4, 1)
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

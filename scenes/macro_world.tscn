@@ -1,0 +1,41 @@
+[gd_scene load_steps=2 format=3 uid="uid://btr_macro_world"]
+
+[ext_resource type="Script" path="res://scripts/macro_world.gd" id="1_world"]
+
+[node name="MacroWorld" type="Node2D"]
+script = ExtResource("1_world")
+
+[node name="Terrain" type="TileMapLayer" parent="."]
+
+[node name="Towers" type="Node2D" parent="."]
+
+[node name="Enemies" type="Node2D" parent="."]
+
+[node name="Projectiles" type="Node2D" parent="."]
+
+[node name="TowerMenu" type="PanelContainer" parent="."]
+visible = false
+offset_right = 140.0
+offset_bottom = 72.0
+
+[node name="VBox" type="VBoxContainer" parent="TowerMenu"]
+layout_mode = 2
+
+[node name="Info" type="Label" parent="TowerMenu/VBox"]
+layout_mode = 2
+text = "Spitter"
+
+[node name="Buttons" type="HBoxContainer" parent="TowerMenu/VBox"]
+layout_mode = 2
+
+[node name="AddBtn" type="Button" parent="TowerMenu/VBox/Buttons"]
+layout_mode = 2
+text = "+Sol"
+
+[node name="RemoveBtn" type="Button" parent="TowerMenu/VBox/Buttons"]
+layout_mode = 2
+text = "-Sol"
+
+[node name="CloseBtn" type="Button" parent="TowerMenu/VBox/Buttons"]
+layout_mode = 2
+text = "X"

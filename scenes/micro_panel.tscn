@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://btr_micro_panel"]
+[gd_scene load_steps=3 format=3 uid="uid://btr_micro_panel"]
 
 [ext_resource type="Script" path="res://scripts/micro_panel.gd" id="1_micro"]
+[ext_resource type="PackedScene" uid="uid://btr_citadel_world" path="res://scenes/citadel_world.tscn" id="2_citadel"]
 
 [node name="MicroPanel" type="PanelContainer"]
 size_flags_horizontal = 3
@@ -18,31 +19,26 @@ theme_override_constants/margin_bottom = 8
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/VBox"]
 layout_mode = 2
 text = "CITADEL"
 horizontal_alignment = 1
 
-[node name="QueenCenter" type="CenterContainer" parent="Margin/VBox"]
+[node name="SubViewportContainer" type="SubViewportContainer" parent="Margin/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
+stretch = true
 
-[node name="QueenSprite" type="TextureRect" parent="Margin/VBox/QueenCenter"]
-custom_minimum_size = Vector2(96, 96)
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
+[node name="SubViewport" type="SubViewport" parent="Margin/VBox/SubViewportContainer"]
+handle_input_locally = false
+size = Vector2i(304, 400)
+render_target_update_mode = 4
+
+[node name="CitadelWorld" parent="Margin/VBox/SubViewportContainer/SubViewport" instance=ExtResource("2_citadel")]
 
 [node name="SatietyLabel" type="Label" parent="Margin/VBox"]
 layout_mode = 2
 text = "Satiety: 100%"
 horizontal_alignment = 1
-
-[node name="Status" type="Label" parent="Margin/VBox"]
-modulate = Color(0.478431, 0.415686, 0.345098, 1)
-layout_mode = 2
-text = "Queen chamber (Sprint 02: nursery here)"
-horizontal_alignment = 1
-autowrap_mode = 2

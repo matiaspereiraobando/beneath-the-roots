@@ -58,6 +58,10 @@ text = "Wave: 1"
 layout_mode = 2
 text = "BUILD"
 
+[node name="SoldiersLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
+layout_mode = 2
+text = "Soldiers: 0"
+
 [node name="Spacer" type="Control" parent="Root/HUD/HudMargin/HudRow"]
 layout_mode = 2
 size_flags_horizontal = 3

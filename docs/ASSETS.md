@@ -5,7 +5,9 @@
 - **Tone:** Grim underground survival
 - **Palette:** Desaturated browns (#3d2e22), dark tunnels (#2a1f18), acid green attacks (#6aff4a), queen purple (#6b2d5c)
 - **Grid:** 16px base tile
-- **View:** Side-view (sidescroller) for all sprites
+- **Macro view:** Side-view sidescroller tilemap (`assets/tilesets/macro_terrain.tres`)
+- **Micro view:** Top-down citadel tilemap (`assets/tilesets/citadel_interior.tres`)
+- **Entities in macro:** Side-view sprites (enemies, towers) on the tilemap grid
 
 ## Sprite conventions
 
@@ -15,7 +17,9 @@
 | Enemies | 24×32 | `assets/sprites/` |
 | Towers / structures | 32×32 | `assets/sprites/` |
 | Queen | 48×48 | `assets/sprites/queen.png` |
-| Tunnel tileset | 16×16 | `assets/sprites/tunnel-tileset.png` |
+| Tunnel tileset (legacy PNG) | 16×16 | `assets/sprites/tunnel-tileset.png` |
+| Macro terrain tileset | 16×16 | `assets/tilesets/macro_terrain.tres` |
+| Citadel interior tileset | 16×16 | `assets/tilesets/citadel_interior.tres` |
 | UI icons | 16×16 | `assets/sprites/ui/` |
 
 ## How to check if PixelLab is ready

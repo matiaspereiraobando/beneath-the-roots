@@ -15,8 +15,19 @@ Grim survival. Desaturated underground palette. Wet, organic violence. Queen HP 
 | Panel | Width | Role |
 |-------|-------|------|
 | HUD | Full width, 48px top | Biomass, wave, phase, queen HP, satiety |
-| Macro (left) | 68% | TD: path, enemies, dig, build, towers, mines |
-| Micro (right) | 32% | Citadel: queen, nursery queue, warehouse, ant counts |
+| Macro (left) | 68% | Side-view **tilemap**: sky/surface, tunnels, towers, enemies |
+| Micro (right) | 32% | Top-down **citadel tilemap**: queen room, nursery, armory |
+
+### Macro map conventions (16px grid)
+
+| Anchor | Position |
+|--------|----------|
+| Sky band | Top 1–2 rows (non-walkable) |
+| Cave entrance / spawn | **Top-left**, surface boundary (sky meets grass) |
+| Citadel breach zone | **Bottom-right** 3×3 tiles |
+| Enemies | A* pathfind on walkable tunnel tiles (static grid in Sprint 01; dynamic dig in Sprint 03) |
+
+Macro and micro show the **same citadel at different scales** (side cutaway vs floor plan).
 
 ## Timing model
 
