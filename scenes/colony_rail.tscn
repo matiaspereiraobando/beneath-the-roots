@@ -1,0 +1,100 @@
+[gd_scene load_steps=2 format=3 uid="uid://btr_colony_rail"]
+
+[ext_resource type="Script" path="res://scripts/colony_rail.gd" id="1_rail"]
+
+[node name="ColonyRail" type="PanelContainer"]
+custom_minimum_size = Vector2(80, 0)
+size_flags_vertical = 3
+theme_type_variation = &"ColonyRail"
+script = ExtResource("1_rail")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 4
+
+[node name="VBox" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 3
+alignment = 1
+
+[node name="ExpandBtn" type="Button" parent="Margin/VBox"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "«"
+tooltip_text = "Colony menu (M)"
+
+[node name="SatietyBar" type="ProgressBar" parent="Margin/VBox"]
+custom_minimum_size = Vector2(16, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+max_value = 100.0
+value = 100.0
+show_percentage = false
+fill_mode = 3
+
+[node name="Counts" type="HBoxContainer" parent="Margin/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 2
+
+[node name="GathererCol" type="VBoxContainer" parent="Margin/VBox/Counts"]
+layout_mode = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Margin/VBox/Counts/GathererCol"]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="CountLabel" type="Label" parent="Margin/VBox/Counts/GathererCol"]
+layout_mode = 2
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 11
+text = "0"
+horizontal_alignment = 1
+
+[node name="BuilderCol" type="VBoxContainer" parent="Margin/VBox/Counts"]
+layout_mode = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Margin/VBox/Counts/BuilderCol"]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="CountLabel" type="Label" parent="Margin/VBox/Counts/BuilderCol"]
+layout_mode = 2
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 11
+text = "0"
+horizontal_alignment = 1
+
+[node name="SoldierCol" type="VBoxContainer" parent="Margin/VBox/Counts"]
+layout_mode = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Margin/VBox/Counts/SoldierCol"]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="CountLabel" type="Label" parent="Margin/VBox/Counts/SoldierCol"]
+layout_mode = 2
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 11
+text = "0"
+horizontal_alignment = 1
+
+[node name="SlotCol" type="VBoxContainer" parent="Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 2
+alignment = 1

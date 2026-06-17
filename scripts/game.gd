@@ -15,7 +15,7 @@ const SpritePaths = preload("res://scripts/util/sprite_paths.gd")
 func _ready() -> void:
 	$Root/HUD.custom_minimum_size.y = GameConfig.HUD_HEIGHT
 	_load_hud_icons()
-	GameState.biomass_changed.connect(_refresh_hud)
+	GameState.biomass_changed.connect(_on_biomass_changed)
 	GameState.phase_changed.connect(func(_p): _refresh_hud())
 	GameState.queen_hp_changed.connect(func(_c, _m): _refresh_hud())
 	GameState.queen_satiety_changed.connect(_on_satiety_changed)
@@ -37,8 +37,12 @@ func _load_hud_icons() -> void:
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 
 
+func _on_biomass_changed(value: int) -> void:
+	_biomass_label.text = str(value)
+
+
 func _refresh_hud() -> void:
-	_biomass_label.text = "%d" % GameState.biomass
+	_on_biomass_changed(GameState.biomass)
 	$Root/HUD/HudMargin/HudRow/WaveLabel.text = "Wave: %d" % (GameState.wave_index + 1)
 	_refresh_phase_label()
 	$Root/HUD/HudMargin/HudRow/QueenHpLabel.text = "Queen HP: %d/%d" % [GameState.queen_hp, GameState.queen_max_hp]
@@ -62,8 +66,8 @@ func _refresh_soldiers(count: int) -> void:
 func _refresh_phase_label() -> void:
 	match GameState.phase:
 		GameState.Phase.BUILD:
-			var slots := "rock tile" if GameState.has_open_build_slot() else "no slots"
-			_phase_label.text = "BUILD %ds — click %s (%d biomass)" % [
+			var slots := "tile" if GameState.has_open_build_slot() else "no slot"
+			_phase_label.text = "BUILD %ds · %s (%d)" % [
 				int(ceilf(GameState.build_timer)),
 				slots,
 				GameTuning.SPITTER_COST,

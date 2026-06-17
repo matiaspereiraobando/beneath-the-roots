@@ -15,8 +15,9 @@ Grim survival. Desaturated underground palette. Wet, organic violence. Queen HP 
 | Panel | Width | Role |
 |-------|-------|------|
 | HUD | Full width, 48px top | Biomass, wave, phase, queen HP, satiety |
-| Macro (left) | 68% | Side-view **tilemap** (32px tiles, scrollable): sky/surface, tunnels, towers, enemies |
-| Micro (right) | 32% | **Cross-section nursery**: illustrated tunnel map, queen chamber, path-patrolling ants |
+| Macro | 880px (960 − 80px rail) | Side-view **tilemap** (32px tiles, scrollable): sky/surface, tunnels, towers, enemies |
+| Colony rail | 80px (always visible) | Satiety strip, G/B/S counts, vertical nursery queue icons |
+| Colony drawer | 365px (overlay, toggled) | Feed, queue editing, colony counts; **M** or tab to toggle |
 
 ### Macro map conventions (32px grid)
 
@@ -28,9 +29,9 @@ Grim survival. Desaturated underground palette. Wet, organic violence. Queen HP 
 | Enemies | A* pathfind on walkable tunnel tiles (static grid in Sprint 01; dynamic dig in Sprint 03) |
 | Camera | WASD pans the macro view; map larger than panel — path length unchanged in tile count |
 
-Macro entity sprites render at native size (`scale 1,1`). Micro nursery uses a **256×256 side-cutaway illustration** scaled to the SubViewport; ants are side-view silhouettes on `Path2D` patrol routes.
+Macro entity sprites render at native size (`scale 1,1`). Colony status is **icons + numbers** on the right rail; expanded drawer is UI-only (no nursery illustration in v1). Breach feedback pulses the rail; drawer does not auto-open.
 
-Macro (top-down strategy map) and micro (cross-section ant farm) show the **same colony** from different viewpoints.
+Macro (strategy map) and colony panel show the **same colony** — macro for defense, rail/drawer for nursery management.
 
 ## Timing model
 
@@ -58,7 +59,7 @@ Macro (top-down strategy map) and micro (cross-section ant farm) show the **same
 | Builder | Dig soft-earth tiles (costs 1 builder + 15 biomass) |
 | Soldier | Assigned to towers for DPS/fire rate |
 
-**Nursery queue:** 5 slots on micro panel. Click to cycle G/B/S. Queen spawns every 10s (faster when well-fed).
+**Nursery queue:** 5 slots on colony rail (clickable) and drawer. Click to cycle G/B/S. Queen spawns every 10s (faster when well-fed). Toggle drawer with **M** or the rail tab.
 
 ## Queen
 

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
 [ext_resource type="PackedScene" uid="uid://btr_macro_panel" path="res://scenes/macro_panel.tscn" id="2_macro"]
-[ext_resource type="PackedScene" uid="uid://btr_micro_panel" path="res://scenes/micro_panel.tscn" id="3_micro"]
+[ext_resource type="PackedScene" uid="uid://btr_colony_panel" path="res://scenes/colony_panel.tscn" id="3_colony"]
 
 [node name="Game" type="Control"]
 layout_mode = 3
@@ -32,19 +32,20 @@ grow_vertical = 2
 theme_override_constants/separation = 0
 
 [node name="HUD" type="PanelContainer" parent="Root"]
+clip_contents = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 
 [node name="HudMargin" type="MarginContainer" parent="Root/HUD"]
 layout_mode = 2
-theme_override_constants/margin_left = 12
+theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 4
-theme_override_constants/margin_right = 12
+theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 4
 
 [node name="HudRow" type="HBoxContainer" parent="Root/HUD/HudMargin"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 8
 
 [node name="BiomassRow" type="HBoxContainer" parent="Root/HUD/HudMargin/HudRow"]
 layout_mode = 2
@@ -64,6 +65,9 @@ text = "Wave: 1"
 
 [node name="PhaseLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
 layout_mode = 2
+size_flags_horizontal = 3
+clip_text = true
+text_overrun_behavior = 3
 text = "BUILD"
 
 [node name="SoldiersRow" type="HBoxContainer" parent="Root/HUD/HudMargin/HudRow"]
@@ -98,13 +102,25 @@ layout_mode = 2
 layout_mode = 2
 text = "100"
 
-[node name="Content" type="HBoxContainer" parent="Root"]
+[node name="Content" type="Control" parent="Root"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 0
 
 [node name="MacroPanel" parent="Root/Content" instance=ExtResource("2_macro")]
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -80.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="MicroPanel" parent="Root/Content" instance=ExtResource("3_micro")]
-layout_mode = 2
+[node name="ColonyPanel" parent="Root/Content" instance=ExtResource("3_colony")]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 2

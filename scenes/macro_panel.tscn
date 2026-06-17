@@ -18,7 +18,7 @@ theme_override_constants/margin_bottom = 8
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-stretch = true
+stretch = false
 
 [node name="SubViewport" type="SubViewport" parent="Margin/SubViewportContainer"]
 handle_input_locally = true

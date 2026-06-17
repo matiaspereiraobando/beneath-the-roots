@@ -58,3 +58,7 @@ MacroPanel/base_type = &"PanelContainer"
 MacroPanel/styles/panel = SubResource("StyleBoxFlat_macro")
 MicroPanel/base_type = &"PanelContainer"
 MicroPanel/styles/panel = SubResource("StyleBoxFlat_micro")
+ColonyRail/base_type = &"PanelContainer"
+ColonyRail/styles/panel = SubResource("StyleBoxFlat_micro")
+ColonyDrawer/base_type = &"PanelContainer"
+ColonyDrawer/styles/panel = SubResource("StyleBoxFlat_micro")

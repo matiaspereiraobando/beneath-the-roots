@@ -1,0 +1,71 @@
+[gd_scene load_steps=2 format=3 uid="uid://btr_colony_drawer"]
+
+[ext_resource type="Script" path="res://scripts/colony_drawer.gd" id="1_drawer"]
+
+[node name="ColonyDrawer" type="PanelContainer"]
+custom_minimum_size = Vector2(365, 0)
+theme_type_variation = &"ColonyDrawer"
+script = ExtResource("1_drawer")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="Scroll" type="ScrollContainer" parent="Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="VBox" type="VBoxContainer" parent="Margin/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="HeaderRow" type="HBoxContainer" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Margin/Scroll/VBox/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "NURSERY"
+horizontal_alignment = 1
+
+[node name="CollapseBtn" type="Button" parent="Margin/Scroll/VBox/HeaderRow"]
+layout_mode = 2
+text = "»"
+tooltip_text = "Minimize (M)"
+
+[node name="SatietyLabel" type="Label" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+text = "Satiety: 100%"
+horizontal_alignment = 1
+
+[node name="FeedBtn" type="Button" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+text = "Feed (15)"
+
+[node name="ColonyLabel" type="Label" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+text = "G:0  B:0  S:0"
+horizontal_alignment = 1
+
+[node name="SlotCol" type="VBoxContainer" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="FutureActions" type="VBoxContainer" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Placeholder" type="Label" parent="Margin/Scroll/VBox/FutureActions"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.5, 0.45, 1)
+theme_override_font_sizes/font_size = 14
+text = "Colony actions — coming soon"
+horizontal_alignment = 1
+autowrap_mode = 2
