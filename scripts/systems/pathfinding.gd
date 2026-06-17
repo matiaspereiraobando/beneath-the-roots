@@ -10,6 +10,14 @@ var _citadel_cells: Array[Vector2i] = []
 
 
 func setup_from_level(level: Dictionary) -> void:
+	_apply_level(level)
+
+
+func rebuild(level: Dictionary) -> void:
+	_apply_level(level)
+
+
+func _apply_level(level: Dictionary) -> void:
 	_cols = level.gridSize.cols
 	_rows = level.gridSize.rows
 	_citadel_cells.clear()
@@ -33,11 +41,6 @@ func setup_from_level(level: Dictionary) -> void:
 				MacroCell.SPAWN,
 			]
 			_astar.set_point_solid(Vector2i(x, y), not walkable)
-
-
-func rebuild(_level: Dictionary) -> void:
-	# Sprint 03: refresh A* and call MacroTerrainPainter.refresh_region after dig.
-	pass
 
 
 func get_path_to_citadel(from: Vector2i) -> PackedVector2Array:

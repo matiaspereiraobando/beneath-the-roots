@@ -1,5 +1,16 @@
 extends Node2D
 
+const MacroCell = preload("res://scripts/data/macro_tiles.gd").Cell
+
+const BUILD_TYPES := ["spitter", "crusher", "needle", "gland"]
+const BUILD_LABELS := {
+	"spitter": "Spitter",
+	"crusher": "Crusher",
+	"needle": "Needle",
+	"gland": "Gland",
+	"mine": "Mine",
+}
+
 @onready var camera: Camera2D = $Camera2D
 @onready var terrain: TileMapLayer = $Terrain
 @onready var enemies_root: Node2D = $Enemies
@@ -12,8 +23,13 @@ extends Node2D
 @onready var _close_btn: Button = $UILayer/TowerMenu/VBox/Buttons/CloseBtn
 
 var _build_hints: Node2D
+var _dig_hints: Node2D
+var _dig_progress_root: Node2D
+var _mines_root: Node2D
 var _build_feedback: Label
 var _feedback_timer: float = 0.0
+var _selected_build_type := "spitter"
+var _select_mine := false
 
 var _pathfinding := GridPathfinding.new()
 var _wave_manager := WaveManager.new()
@@ -21,7 +37,9 @@ var _combat := CombatSystem.new()
 var _colony
 var _enemy_sprites: Dictionary = {}
 var _tower_sprites: Dictionary = {}
+var _mine_sprites: Dictionary = {}
 var _projectile_sprites: Dictionary = {}
+var _dig_progress_labels: Dictionary = {}
 var _selected_tower: Dictionary = {}
 var _textures: Dictionary = {}
 var _macro_tileset
@@ -54,6 +72,11 @@ func _wire_signals() -> void:
 	GameState.enemy_reached_end.connect(_on_enemy_removed)
 	GameState.tower_placed.connect(_on_tower_placed)
 	GameState.tower_placed.connect(func(_t): _refresh_build_hints())
+	GameState.mine_placed.connect(_on_mine_placed)
+	GameState.mine_triggered.connect(_on_mine_triggered)
+	GameState.dig_started.connect(func(_c): _refresh_dig_overlays())
+	GameState.dig_completed.connect(_on_dig_completed)
+	GameState.cells_changed.connect(_on_cell_changed)
 	GameState.phase_changed.connect(func(_p): _refresh_build_hints())
 	GameState.projectiles_changed.connect(_sync_projectiles)
 	GameState.soldiers_changed.connect(_on_soldiers_changed)
@@ -66,12 +89,23 @@ func _load_textures() -> void:
 	_textures["spitter"] = _load_tex("res://assets/sprites/spitter.png")
 	_textures["skitter"] = _load_tex("res://assets/sprites/skitter.png")
 	_textures["chitin"] = _load_tex("res://assets/sprites/skitter.png")
+	for tower_type in BUILD_TYPES:
+		if _textures.get(tower_type) == null:
+			var color: Color = GameTuning.TOWER_PLACEHOLDER_COLORS.get(tower_type, Color.WHITE)
+			_textures[tower_type] = _make_color_tex(color)
 
 
 func _load_tex(path: String) -> Texture2D:
 	var image := Image.new()
 	if image.load(path) != OK:
 		return null
+	return ImageTexture.create_from_image(image)
+
+
+func _make_color_tex(color: Color) -> Texture2D:
+	var size := GameTuning.TILE_SIZE
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	image.fill(color)
 	return ImageTexture.create_from_image(image)
 
 
@@ -83,10 +117,14 @@ func _clear_children(node: Node) -> void:
 func _load_level() -> void:
 	_enemy_sprites.clear()
 	_tower_sprites.clear()
+	_mine_sprites.clear()
 	_projectile_sprites.clear()
+	_dig_progress_labels.clear()
 	_clear_children(enemies_root)
 	_clear_children(towers_root)
 	_clear_children(projectiles_root)
+	if _mines_root:
+		_clear_children(_mines_root)
 	_macro_tileset = load("res://scripts/util/macro_tileset.gd").new()
 	terrain.tile_set = _macro_tileset.tile_set
 	_paint_level(GameState.level_data)
@@ -95,7 +133,10 @@ func _load_level() -> void:
 	_combat.setup(_pathfinding)
 	for tower in GameState.towers:
 		_on_tower_placed(tower)
+	for mine in GameState.mines:
+		_on_mine_placed(mine)
 	_refresh_build_hints()
+	_refresh_dig_overlays()
 	_center_camera_on_spawn()
 
 
@@ -111,6 +152,7 @@ func _process(delta: float) -> void:
 	_combat.update(delta)
 	_colony.update(delta)
 	_tick_build_feedback(delta)
+	_update_dig_progress_labels()
 	_sync_enemy_positions()
 	_sync_projectiles()
 
@@ -155,12 +197,46 @@ func _clamp_camera_axis(value: float, half_view: float, map_length: float) -> fl
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("build_select_1"):
+		_set_build_selection("spitter")
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("build_select_2"):
+		_set_build_selection("crusher")
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("build_select_3"):
+		_set_build_selection("needle")
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("build_select_4"):
+		_set_build_selection("gland")
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("build_select_5"):
+		_set_build_selection("mine")
+		get_viewport().set_input_as_handled()
+		return
 	if not event is InputEventMouseButton:
 		return
 	var mb := event as InputEventMouseButton
 	if not mb.pressed or mb.button_index != MOUSE_BUTTON_LEFT:
 		return
 	handle_world_click(get_global_mouse_position())
+
+
+func _set_build_selection(selection: String) -> void:
+	if selection == "mine":
+		_select_mine = true
+		_show_build_feedback("Mine selected — click a tunnel tile.")
+	else:
+		_select_mine = false
+		_selected_build_type = selection
+		_show_build_feedback("%s selected (cost %d)." % [
+			BUILD_LABELS.get(selection, selection),
+			GameTuning.TOWER_COSTS.get(selection, GameTuning.SPITTER_COST),
+		])
+	_refresh_build_hints()
 
 
 func handle_world_click(world_pos: Vector2) -> void:
@@ -172,12 +248,28 @@ func handle_world_click(world_pos: Vector2) -> void:
 		_show_tower_menu(tower, world_pos)
 		return
 	_hide_tower_menu()
-	if GameState.phase == GameState.Phase.BUILD:
-		var err := GameState.place_spitter(cell)
-		if err != "":
-			_show_build_feedback(err)
+	if GameState.phase != GameState.Phase.BUILD:
+		return
+	if GameState.get_cell_at(cell) == MacroCell.SOFT_EARTH:
+		var dig_err := GameState.start_dig(cell)
+		if dig_err != "":
+			_show_build_feedback(dig_err)
 		else:
-			_show_build_feedback("Spitter built! Click it to assign soldiers.")
+			_show_build_feedback("Digging… builder busy for %ds." % int(GameTuning.DIG_DURATION))
+		return
+	if _select_mine:
+		var mine_err := GameState.place_mine(cell)
+		if mine_err != "":
+			_show_build_feedback(mine_err)
+		else:
+			_show_build_feedback("Fungal mine placed on path.")
+		return
+	var err := GameState.place_tower(cell, _selected_build_type)
+	if err != "":
+		_show_build_feedback(err)
+	else:
+		var label: String = BUILD_LABELS.get(_selected_build_type, _selected_build_type)
+		_show_build_feedback("%s built! Click it to assign soldiers." % label)
 
 
 func _show_tower_menu(tower: Dictionary, world_pos: Vector2) -> void:
@@ -190,8 +282,14 @@ func _show_tower_menu(tower: Dictionary, world_pos: Vector2) -> void:
 func _refresh_tower_menu() -> void:
 	if _selected_tower.is_empty():
 		return
-	_tower_info.text = "Spitter  Soldiers: %d/%d" % [
-		_selected_tower.soldiers, GameTuning.TOWER_BASE_SLOTS
+	var label: String = BUILD_LABELS.get(_selected_tower.type, _selected_tower.type)
+	if _selected_tower.type == "gland":
+		_tower_info.text = "%s (aura support)" % label
+		_add_btn.disabled = true
+		_remove_btn.disabled = true
+		return
+	_tower_info.text = "%s  Soldiers: %d/%d" % [
+		label, _selected_tower.soldiers, GameTuning.TOWER_BASE_SLOTS
 	]
 	_add_btn.disabled = (
 		_selected_tower.soldiers >= GameTuning.TOWER_BASE_SLOTS
@@ -243,6 +341,18 @@ func _setup_build_ui() -> void:
 	_build_hints.name = "BuildHints"
 	_build_hints.z_index = 5
 	add_child(_build_hints)
+	_dig_hints = Node2D.new()
+	_dig_hints.name = "DigHints"
+	_dig_hints.z_index = 5
+	add_child(_dig_hints)
+	_dig_progress_root = Node2D.new()
+	_dig_progress_root.name = "DigProgress"
+	_dig_progress_root.z_index = 6
+	add_child(_dig_progress_root)
+	_mines_root = Node2D.new()
+	_mines_root.name = "Mines"
+	_mines_root.z_index = 4
+	add_child(_mines_root)
 	_build_feedback = Label.new()
 	_build_feedback.name = "BuildFeedback"
 	_build_feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -261,24 +371,80 @@ func _refresh_build_hints() -> void:
 		return
 	for child in _build_hints.get_children():
 		child.queue_free()
+	if _dig_hints:
+		for child in _dig_hints.get_children():
+			child.queue_free()
 	if GameState.phase != GameState.Phase.BUILD:
 		return
-	for slot in GameState.level_data.get("buildSlots", []):
-		var cell := Vector2i(slot.x, slot.y)
-		if not GameState.get_tower_at(cell).is_empty():
-			continue
-		var center := _pathfinding.tile_center(cell)
-		var ring := _make_build_ring()
-		ring.position = center
-		_build_hints.add_child(ring)
+	var cells: Array = GameState.level_data.get("cells", [])
+	for y in cells.size():
+		for x in cells[y].size():
+			var cell := Vector2i(x, y)
+			var cell_type: int = cells[y][x]
+			var center := _pathfinding.tile_center(cell)
+			if cell_type == MacroCell.BUILD and GameState.get_tower_at(cell).is_empty():
+				var ring := _make_ring(Color(0.42, 1.0, 0.29, 0.9))
+				ring.position = center
+				_build_hints.add_child(ring)
+			elif cell_type == MacroCell.SOFT_EARTH and not GameState.is_digging_at(cell):
+				var earth := _make_ring(Color(0.72, 0.52, 0.32, 0.85))
+				earth.position = center
+				_dig_hints.add_child(earth)
 
 
-func _make_build_ring() -> Sprite2D:
+func _refresh_dig_overlays() -> void:
+	_update_dig_progress_labels()
+
+
+func _update_dig_progress_labels() -> void:
+	if _dig_progress_root == null:
+		return
+	var live: Dictionary = {}
+	for job in GameState.dig_jobs:
+		var key := "%d,%d" % [job.cell_x, job.cell_y]
+		live[key] = true
+		var label: Label
+		if _dig_progress_labels.has(key):
+			label = _dig_progress_labels[key]
+		else:
+			label = Label.new()
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.55))
+			label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+			label.add_theme_constant_override("outline_size", 3)
+			_dig_progress_root.add_child(label)
+			_dig_progress_labels[key] = label
+		var center := _pathfinding.tile_center(Vector2i(job.cell_x, job.cell_y))
+		label.position = center + Vector2(-16, -8)
+		var pct := int((float(job.progress) / float(job.duration)) * 100.0)
+		label.text = "Dig %d%%" % pct
+	for key in _dig_progress_labels.keys():
+		if not live.has(key):
+			_dig_progress_labels[key].queue_free()
+			_dig_progress_labels.erase(key)
+
+
+func _on_dig_completed(cell: Vector2i) -> void:
+	_pathfinding.rebuild(GameState.level_data)
+	_terrain_painter.refresh_region(
+		terrain, GameState.level_data.cells, cell, 2, _macro_tileset
+	)
+	_refresh_build_hints()
+	_refresh_dig_overlays()
+	_show_build_feedback("Dig complete — build tile ready.")
+
+
+func _on_cell_changed(cell: Vector2i) -> void:
+	_terrain_painter.refresh_region(
+		terrain, GameState.level_data.cells, cell, 2, _macro_tileset
+	)
+
+
+func _make_ring(color: Color) -> Sprite2D:
 	var tex_size := GameTuning.TILE_SIZE
 	var thickness := 3
 	var gap := 5
 	var image := Image.create(tex_size, tex_size, false, Image.FORMAT_RGBA8)
-	var color := Color(0.42, 1.0, 0.29, 0.9)
 	for y in tex_size:
 		for x in tex_size:
 			var outer := x < thickness or y < thickness or x >= tex_size - thickness or y >= tex_size - thickness
@@ -309,10 +475,33 @@ func _tick_build_feedback(delta: float) -> void:
 
 func _on_tower_placed(tower: Dictionary) -> void:
 	var sprite := Sprite2D.new()
-	sprite.texture = _textures.get("spitter")
+	sprite.texture = _textures.get(tower.type, _textures.spitter)
 	sprite.position = _pathfinding.tile_center(Vector2i(tower.tile_x, tower.tile_y))
 	towers_root.add_child(sprite)
 	_tower_sprites[tower.id] = sprite
+
+
+func _on_mine_placed(mine: Dictionary) -> void:
+	_sync_mine_sprite(mine)
+
+
+func _on_mine_triggered(mine: Dictionary) -> void:
+	_sync_mine_sprite(mine)
+
+
+func _sync_mine_sprite(mine: Dictionary) -> void:
+	var id: int = mine.id
+	var center := _pathfinding.tile_center(Vector2i(mine.tile_x, mine.tile_y))
+	if not _mine_sprites.has(id):
+		var dot := Sprite2D.new()
+		dot.texture = _make_color_tex(Color(0.55, 0.85, 0.35))
+		dot.scale = Vector2(0.5, 0.5)
+		dot.position = center
+		_mines_root.add_child(dot)
+		_mine_sprites[id] = dot
+	var sprite: Sprite2D = _mine_sprites[id]
+	sprite.position = center
+	sprite.modulate = Color.WHITE if mine.armed else Color(0.45, 0.45, 0.45, 0.7)
 
 
 func _sync_enemy_positions() -> void:

@@ -67,10 +67,9 @@ func _refresh_phase_label() -> void:
 	match GameState.phase:
 		GameState.Phase.BUILD:
 			var slots := "tile" if GameState.has_open_build_slot() else "no slot"
-			_phase_label.text = "BUILD %ds · %s (%d)" % [
+			_phase_label.text = "BUILD %ds · %s · 1-5 build" % [
 				int(ceilf(GameState.build_timer)),
 				slots,
-				GameTuning.SPITTER_COST,
 			]
 			_phase_label.modulate = Color(0.784314, 0.721569, 0.627451, 1)
 		GameState.Phase.WAVE:

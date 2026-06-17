@@ -58,6 +58,7 @@ func resolve_mask(mask: int) -> int:
 func _build() -> void:
 	var tile_size := GameTuning.TILE_SIZE
 	var basic_image := _load_image(BASIC_PATH)
+	_ensure_soft_earth_tile(basic_image, tile_size)
 	var autotile_image := _load_image(AUTOTILE_PATH)
 	_key_magenta_transparent(autotile_image)
 	valid_masks = _scan_valid_masks(autotile_image, tile_size)
@@ -103,6 +104,17 @@ func _apply_basic_custom_data(atlas: TileSetAtlasSource) -> void:
 		tile_data.set_custom_data("walkable", walkable)
 		tile_data.set_custom_data("build_slot", i == 4)
 		tile_data.set_custom_data("citadel", i == 6)
+
+
+func _ensure_soft_earth_tile(image: Image, tile_size: int) -> void:
+	if image.get_format() != Image.FORMAT_RGBA8:
+		image.convert(Image.FORMAT_RGBA8)
+	var ox := 7 * tile_size
+	for y in tile_size:
+		for x in tile_size:
+			var edge := x < 2 or y < 2 or x >= tile_size - 2 or y >= tile_size - 2
+			var color := Color(0.52, 0.38, 0.26) if edge else Color(0.62, 0.46, 0.32)
+			image.set_pixel(ox + x, y, color)
 
 
 func _load_image(path: String) -> Image:

@@ -14,6 +14,7 @@ func update(delta: float) -> void:
 	_tick_satiety(delta)
 	_tick_queen_spawn(delta)
 	_tick_gatherers(delta)
+	_tick_dig_jobs(delta)
 	if GameState.phase == GameState.Phase.WAVE:
 		GameState.try_auto_feed()
 
@@ -48,3 +49,18 @@ func _tick_gatherers(delta: float) -> void:
 		return
 	_gatherer_timer = GameTuning.GATHERER_BIOMASS_INTERVAL
 	GameState.add_biomass(GameState.gatherer_count * GameTuning.GATHERER_BIOMASS_AMOUNT)
+
+
+func _tick_dig_jobs(delta: float) -> void:
+	if GameState.dig_jobs.is_empty():
+		return
+	var completed: Array[Vector2i] = []
+	for job in GameState.dig_jobs:
+		job.progress = float(job.progress) + delta
+		if float(job.progress) >= float(job.duration):
+			completed.append(Vector2i(job.cell_x, job.cell_y))
+	for cell in completed:
+		GameState.dig_jobs = GameState.dig_jobs.filter(
+			func(j): return not (j.cell_x == cell.x and j.cell_y == cell.y)
+		)
+		GameState.complete_dig(cell)

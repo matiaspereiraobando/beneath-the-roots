@@ -101,7 +101,7 @@ Macro visuals: logic grid in `level_data.cells` → `MacroTerrainPainter` picks 
 
 - **Spawn:** top-left cave mouth (surface row)
 - **Citadel breach:** bottom-right 3×3 tiles
-- **Pathfinding:** `AStarGrid2D` on walkable tiles (static in Sprint 01)
+- **Pathfinding:** `AStarGrid2D` on walkable tiles; `rebuild()` after dig completes (Sprint 03)
 - **Camera:** starts centered on spawn; `macro_pan_*` input actions (WASD) pan within bounds
 
 ## Rendering
@@ -114,10 +114,10 @@ Macro visuals: logic grid in `level_data.cells` → `MacroTerrainPainter` picks 
 
 | System | Script | Status |
 |--------|--------|--------|
-| Pathfinding | `scripts/systems/pathfinding.gd` | Sprint 01 |
+| Pathfinding | `scripts/systems/pathfinding.gd` | Sprint 01 (+ dynamic rebuild Sprint 03) |
 | Wave manager | `scripts/systems/wave_manager.gd` | Sprint 01 |
-| Combat | `scripts/systems/combat_system.gd` | Sprint 01 (+ starve penalty Sprint 02) |
-| Colony | `scripts/systems/colony_system.gd` | Sprint 02 |
+| Combat | `scripts/systems/combat_system.gd` | Sprint 01–03 (multi-tower + mines) |
+| Colony | `scripts/systems/colony_system.gd` | Sprint 02 (+ dig jobs Sprint 03) |
 | Macro terrain | `scripts/systems/macro_terrain_painter.gd` | Sprint 01 |
 
 ## Level format

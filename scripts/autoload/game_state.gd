@@ -23,7 +23,15 @@ signal nursery_changed
 signal colony_counts_changed
 signal ant_spawned(ant_type: int)
 
+const MacroCell = preload("res://scripts/data/macro_tiles.gd").Cell
 const AntType = preload("res://scripts/data/ant_types.gd").Type
+
+signal dig_started(cell: Vector2i)
+signal dig_completed(cell: Vector2i)
+signal mine_placed(mine: Dictionary)
+signal mine_triggered(mine: Dictionary)
+signal cells_changed(cell: Vector2i)
+
 const EMPTY_SLOT = preload("res://scripts/data/ant_types.gd").EMPTY_SLOT
 const NURSERY_SLOTS = preload("res://scripts/data/ant_types.gd").NURSERY_SLOTS
 
@@ -44,10 +52,13 @@ var queen_spawn_timer: float = 0.0
 var level_data: Dictionary = {}
 var enemies: Array = []
 var towers: Array = []
+var mines: Array = []
+var dig_jobs: Array = []
 var projectiles: Array = []
 
 var _next_enemy_id: int = 1
 var _next_tower_id: int = 1
+var _next_mine_id: int = 1
 var _next_projectile_id: int = 1
 
 var _spawn_queue: Array = []
@@ -79,11 +90,14 @@ func reset_for_level(level_id: String, starting_biomass: int = 50, max_hp: int =
 	build_timer = GameTuning.BUILD_PHASE_DURATION
 	enemies.clear()
 	towers.clear()
+	mines.clear()
+	dig_jobs.clear()
 	projectiles.clear()
 	_spawn_queue.clear()
 	_wave_enemies_remaining = 0
 	_next_enemy_id = 1
 	_next_tower_id = 1
+	_next_mine_id = 1
 	_next_projectile_id = 1
 	_emit_all()
 	level_loaded.emit(level_id)
@@ -122,11 +136,85 @@ func dequeue_nursery_ant() -> int:
 
 
 func has_open_build_slot() -> bool:
-	for slot in level_data.get("buildSlots", []):
-		var cell := Vector2i(slot.x, slot.y)
-		if get_tower_at(cell).is_empty():
+	var cells: Array = level_data.get("cells", [])
+	if cells.is_empty():
+		return false
+	for y in cells.size():
+		for x in cells[y].size():
+			if cells[y][x] != MacroCell.BUILD:
+				continue
+			if get_tower_at(Vector2i(x, y)).is_empty():
+				return true
+	return false
+
+
+func get_cell_at(cell: Vector2i) -> int:
+	var cells: Array = level_data.get("cells", [])
+	if cell.y < 0 or cell.y >= cells.size():
+		return -1
+	if cell.x < 0 or cell.x >= cells[cell.y].size():
+		return -1
+	return cells[cell.y][cell.x]
+
+
+func set_cell_at(cell: Vector2i, cell_type: int) -> void:
+	var cells: Array = level_data.get("cells", [])
+	if cell.y < 0 or cell.y >= cells.size():
+		return
+	if cell.x < 0 or cell.x >= cells[cell.y].size():
+		return
+	cells[cell.y][cell.x] = cell_type
+	cells_changed.emit(cell)
+
+
+func is_digging_at(cell: Vector2i) -> bool:
+	for job in dig_jobs:
+		if job.cell_x == cell.x and job.cell_y == cell.y:
 			return true
 	return false
+
+
+func start_dig(cell: Vector2i) -> String:
+	if phase != Phase.BUILD:
+		return "Dig only during BUILD phase."
+	if get_cell_at(cell) != MacroCell.SOFT_EARTH:
+		return "Click soft earth (brown tile) to dig."
+	if is_digging_at(cell):
+		return "Already digging here."
+	if builder_count < 1:
+		return "Need a builder ant in the colony."
+	var cost := GameTuning.DIG_COST
+	if biomass < cost:
+		return "Need %d biomass to dig (you have %d)." % [cost, biomass]
+	if not spend_biomass(cost):
+		return "Need %d biomass to dig." % cost
+	builder_count -= 1
+	colony_counts_changed.emit()
+	dig_jobs.append({
+		"cell_x": cell.x,
+		"cell_y": cell.y,
+		"progress": 0.0,
+		"duration": GameTuning.DIG_DURATION,
+	})
+	dig_started.emit(cell)
+	return ""
+
+
+func complete_dig(cell: Vector2i) -> void:
+	set_cell_at(cell, MacroCell.BUILD)
+	builder_count += 1
+	colony_counts_changed.emit()
+	dig_completed.emit(cell)
+
+
+func get_dig_jobs() -> Array:
+	return dig_jobs
+
+
+func next_mine_id() -> int:
+	var id := _next_mine_id
+	_next_mine_id += 1
+	return id
 
 
 func feed_queen() -> bool:
@@ -217,10 +305,7 @@ func next_projectile_id() -> int:
 
 
 func get_build_slot_at(cell: Vector2i) -> bool:
-	for slot in level_data.get("buildSlots", []):
-		if slot.x == cell.x and slot.y == cell.y:
-			return true
-	return false
+	return get_cell_at(cell) == MacroCell.BUILD
 
 
 func get_tower_at(cell: Vector2i) -> Dictionary:
@@ -230,20 +315,32 @@ func get_tower_at(cell: Vector2i) -> Dictionary:
 	return {}
 
 
-func place_spitter(cell: Vector2i) -> String:
+func get_mine_at(cell: Vector2i) -> Dictionary:
+	for mine in mines:
+		if mine.tile_x == cell.x and mine.tile_y == cell.y:
+			return mine
+	return {}
+
+
+func place_tower(cell: Vector2i, tower_type: String) -> String:
 	if phase != Phase.BUILD:
-		return "Spitters can only be placed during BUILD phase."
+		return "Structures can only be placed during BUILD phase."
+	if tower_type == "mine":
+		return "Select a tunnel tile for mines (press 5)."
+	if not GameTuning.TOWER_COSTS.has(tower_type):
+		return "Unknown structure type."
 	if not get_build_slot_at(cell):
-		return "Click a rock build tile (green ring)."
+		return "Click a build tile (green ring)."
 	if not get_tower_at(cell).is_empty():
-		return "A spitter is already on this tile."
-	if biomass < GameTuning.SPITTER_COST:
-		return "Need %d biomass (you have %d)." % [GameTuning.SPITTER_COST, biomass]
-	if not spend_biomass(GameTuning.SPITTER_COST):
-		return "Need %d biomass." % GameTuning.SPITTER_COST
+		return "A structure is already on this tile."
+	var cost: int = GameTuning.TOWER_COSTS.get(tower_type, GameTuning.SPITTER_COST)
+	if biomass < cost:
+		return "Need %d biomass (you have %d)." % [cost, biomass]
+	if not spend_biomass(cost):
+		return "Need %d biomass." % cost
 	var tower := {
 		"id": next_tower_id(),
-		"type": "spitter",
+		"type": tower_type,
 		"tile_x": cell.x,
 		"tile_y": cell.y,
 		"soldiers": 0,
@@ -253,8 +350,49 @@ func place_spitter(cell: Vector2i) -> String:
 	return ""
 
 
+func place_spitter(cell: Vector2i) -> String:
+	return place_tower(cell, "spitter")
+
+
+func place_mine(cell: Vector2i) -> String:
+	if phase != Phase.BUILD:
+		return "Mines can only be placed during BUILD phase."
+	if get_cell_at(cell) != MacroCell.TUNNEL:
+		return "Mines go on tunnel tiles (press 5, then click path)."
+	if not get_mine_at(cell).is_empty():
+		return "A mine is already on this tile."
+	var cost := GameTuning.MINE_COST
+	if biomass < cost:
+		return "Need %d biomass (you have %d)." % [cost, biomass]
+	if not spend_biomass(cost):
+		return "Need %d biomass." % cost
+	var mine := {
+		"id": next_mine_id(),
+		"tile_x": cell.x,
+		"tile_y": cell.y,
+		"armed": true,
+	}
+	mines.append(mine)
+	mine_placed.emit(mine)
+	return ""
+
+
+func rearm_mines() -> void:
+	for mine in mines:
+		mine.armed = true
+
+
+func trigger_mine(mine: Dictionary) -> void:
+	if mine.is_empty() or not mine.armed:
+		return
+	mine.armed = false
+	mine_triggered.emit(mine)
+
+
 func assign_soldier(tower: Dictionary) -> bool:
 	if tower.is_empty():
+		return false
+	if tower.type == "gland":
 		return false
 	if free_soldiers <= 0:
 		return false
@@ -392,6 +530,7 @@ func advance_wave_or_win() -> void:
 	phase = Phase.BUILD
 	build_timer = GameTuning.BUILD_PHASE_DURATION
 	build_timer_changed.emit(build_timer)
+	rearm_mines()
 	phase_changed.emit(phase)
 
 

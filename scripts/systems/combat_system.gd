@@ -14,10 +14,14 @@ func update(delta: float) -> void:
 		return
 	for tower in GameState.towers:
 		_update_tower(tower, delta)
+	_update_mines(delta)
 	_update_projectiles(delta)
 
 
 func _update_tower(tower: Dictionary, delta: float) -> void:
+	var tower_type: String = tower.type
+	if tower_type == "gland":
+		return
 	var tid: int = tower.id
 	var cd: float = _tower_cooldowns.get(tid, 0.0)
 	cd -= delta
@@ -25,36 +29,130 @@ func _update_tower(tower: Dictionary, delta: float) -> void:
 		_tower_cooldowns[tid] = cd
 		return
 	var center := pathfinding.tile_center(Vector2i(tower.tile_x, tower.tile_y))
-	var target := _find_target(center, GameTuning.SPITTER_RANGE)
+	var range_px: float = GameTuning.tower_stat(tower_type, "range", GameTuning.SPITTER_RANGE)
+	match tower_type:
+		"crusher":
+			_fire_crusher(tower, center, range_px, tid)
+		"needle":
+			_fire_needle(tower, center, range_px, tid)
+		_:
+			_fire_spitter(tower, center, range_px, tid)
+
+
+func _fire_spitter(tower: Dictionary, center: Vector2, range_px: float, tid: int) -> void:
+	var target := _find_target(center, range_px)
 	if target.is_empty():
-		_tower_coldowns_set(tid, 0.1)
+		_tower_cooldowns[tid] = 0.1
 		return
-	var dmg: float = _tower_damage(tower)
-	var fire_rate: float = _tower_fire_rate(tower)
 	GameState.add_projectile({
 		"id": GameState.next_projectile_id(),
 		"x": center.x,
 		"y": center.y,
 		"target_id": target.id,
-		"damage": dmg,
+		"damage": _tower_damage(tower),
 		"speed": GameTuning.PROJECTILE_SPEED,
+		"type": "spitter",
 	})
-	_tower_cooldowns[tid] = 1.0 / fire_rate
+	_tower_cooldowns[tid] = 1.0 / _tower_fire_rate(tower)
 
 
-func _tower_coldowns_set(tid: int, val: float) -> void:
-	_tower_cooldowns[tid] = val
+func _fire_crusher(tower: Dictionary, center: Vector2, range_px: float, tid: int) -> void:
+	var target := _find_target(center, range_px)
+	if target.is_empty():
+		_tower_cooldowns[tid] = 0.1
+		return
+	var splash: float = GameTuning.tower_stat("crusher", "splash_radius", 90.0)
+	var dmg: float = _tower_damage(tower)
+	for enemy in GameState.enemies.duplicate():
+		if center.distance_to(enemy.position) <= splash:
+			enemy.hp = float(enemy.hp) - dmg
+			if enemy.hp <= 0:
+				GameState.kill_enemy(enemy)
+	_tower_cooldowns[tid] = 1.0 / _tower_fire_rate(tower)
+
+
+func _fire_needle(tower: Dictionary, center: Vector2, range_px: float, tid: int) -> void:
+	var target := _find_target(center, range_px)
+	if target.is_empty():
+		_tower_cooldowns[tid] = 0.1
+		return
+	var pierce: int = int(GameTuning.tower_stat("needle", "pierce", 3))
+	var hits := _enemies_in_needle_cone(center, target.position, range_px, pierce)
+	var dmg: float = _tower_damage(tower)
+	for enemy in hits:
+		enemy.hp = float(enemy.hp) - dmg
+		if enemy.hp <= 0:
+			GameState.kill_enemy(enemy)
+	_tower_cooldowns[tid] = 1.0 / _tower_fire_rate(tower)
+
+
+func _enemies_in_needle_cone(from: Vector2, toward: Vector2, range_px: float, max_hits: int) -> Array:
+	var dir := (toward - from).normalized()
+	var candidates: Array = []
+	for enemy in GameState.enemies:
+		var pos: Vector2 = enemy.position
+		if from.distance_to(pos) > range_px:
+			continue
+		var to_enemy := (pos - from).normalized()
+		if dir.dot(to_enemy) < 0.85:
+			continue
+		candidates.append(enemy)
+	candidates.sort_custom(func(a, b): return float(a.path_progress) > float(b.path_progress))
+	if candidates.size() > max_hits:
+		return candidates.slice(0, max_hits)
+	return candidates
+
+
+func _update_mines(delta: float) -> void:
+	for mine in GameState.mines:
+		if not mine.armed:
+			continue
+		var center := pathfinding.tile_center(Vector2i(mine.tile_x, mine.tile_y))
+		for enemy in GameState.enemies:
+			if center.distance_to(enemy.position) <= GameTuning.MINE_TRIGGER_RADIUS:
+				enemy.hp = float(enemy.hp) - GameTuning.MINE_DAMAGE
+				GameState.trigger_mine(mine)
+				if enemy.hp <= 0:
+					GameState.kill_enemy(enemy)
+				break
 
 
 func _tower_damage(tower: Dictionary) -> float:
-	return GameTuning.SPITTER_DAMAGE + tower.soldiers * GameTuning.SOLDIER_DPS_BONUS
+	var base: float = GameTuning.tower_stat(tower.type, "damage", GameTuning.SPITTER_DAMAGE)
+	var aura := _aura_multipliers_for_tower(tower)
+	return (base + tower.soldiers * GameTuning.SOLDIER_DPS_BONUS) * aura.damage_mult
 
 
 func _tower_fire_rate(tower: Dictionary) -> float:
-	var rate: float = GameTuning.SPITTER_FIRE_RATE * (1.0 + tower.soldiers * GameTuning.SOLDIER_FIRE_RATE_BONUS)
+	var base: float = GameTuning.tower_stat(tower.type, "fire_rate", GameTuning.SPITTER_FIRE_RATE)
+	var rate: float = base * (1.0 + tower.soldiers * GameTuning.SOLDIER_FIRE_RATE_BONUS)
+	var aura := _aura_multipliers_for_tower(tower)
+	rate *= aura.fire_rate_mult
 	if GameState.queen_satiety < GameTuning.STARVE_THRESHOLD:
 		rate *= GameTuning.STARVE_FIRE_RATE_MULT
 	return rate
+
+
+func _aura_multipliers_for_tower(tower: Dictionary) -> Dictionary:
+	var damage_mult := 1.0
+	var fire_rate_mult := 1.0
+	var tower_center := pathfinding.tile_center(Vector2i(tower.tile_x, tower.tile_y))
+	for other in GameState.towers:
+		if other.type != "gland":
+			continue
+		var gland_center := pathfinding.tile_center(Vector2i(other.tile_x, other.tile_y))
+		var gland_range: float = GameTuning.tower_stat("gland", "range", 180.0)
+		if tower_center.distance_to(gland_center) > gland_range:
+			continue
+		damage_mult = maxf(
+			damage_mult,
+			1.0 + float(GameTuning.tower_stat("gland", "aura_damage", 0.25))
+		)
+		fire_rate_mult = maxf(
+			fire_rate_mult,
+			1.0 + float(GameTuning.tower_stat("gland", "aura_fire_rate", 0.2))
+		)
+	return {"damage_mult": damage_mult, "fire_rate_mult": fire_rate_mult}
 
 
 func _find_target(from: Vector2, range_px: float) -> Dictionary:
