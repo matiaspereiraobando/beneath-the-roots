@@ -10,7 +10,7 @@ scenes/
   game.tscn            # HUD + macro + micro shell
   macro_world.tscn     # macro tilemap gameplay (SubViewport)
   macro_panel.tscn     # SubViewport host for macro world
-  citadel_world.tscn   # micro top-down citadel tilemap
+  citadel_world.tscn   # micro cross-section nursery (background + path patrol)
   micro_panel.tscn     # SubViewport host for citadel world
 assets/
   theme/game_theme.tres
@@ -79,7 +79,7 @@ Use **container-based layout** for HUD/micro chrome. Macro gameplay runs in a **
 
 `macro_world.gd` ticks **wave_manager**, **combat_system**, and **colony_system** each frame.
 
-Micro citadel (`citadel_world.gd`) paints room tiles from `citadel_tileset.gd`, shows `queen_micro.png`, and wanders ant sprites in nursery/armory/corridor rects. Nursery UI in `micro_panel.gd` drives `GameState.nursery_queue` and feed actions.
+Micro nursery (`citadel_world.gd`) displays `assets/micro/nursery_background.png`, anchors the queen at `NurseryLayout.QUEEN_ANCHOR`, and patrols side-view ants along `Path2D` routes (gatherer → food/queen loop, builder → spine/eggs, soldier → queen chamber). Breach flash uses `QueenOverlay` on `NurseryLayout.BREACH_RECT`. Nursery UI in `micro_panel.gd` drives `GameState.nursery_queue` and feed actions. Loader: `SpritePaths.micro_background()`, `micro_ant_sprite()`; procedural fallback in `nursery_ant_sprites.gd`.
 
 Macro visuals: logic grid in `level_data.cells` → `MacroTerrainPainter` picks basic tiles or dirt autotile masks (tunnel-neighbor bitmask) → `MacroTileset` atlas sources.
 

@@ -1,14 +1,26 @@
-[gd_scene load_steps=2 format=3 uid="uid://btr_citadel_world"]
+[gd_scene load_steps=3 format=3 uid="uid://btr_citadel_world"]
 
 [ext_resource type="Script" path="res://scripts/citadel_world.gd" id="1_citadel"]
+[ext_resource type="Texture2D" path="res://assets/micro/nursery_background.png" id="2_bg"]
 
 [node name="CitadelWorld" type="Node2D"]
 script = ExtResource("1_citadel")
 
 [node name="Camera2D" type="Camera2D" parent="."]
-position = Vector2(144, 192)
+position = Vector2(128, 128)
 
-[node name="FloorMap" type="TileMapLayer" parent="."]
+[node name="Background" type="Sprite2D" parent="."]
+position = Vector2(128, 128)
+texture = ExtResource("2_bg")
+centered = true
+
+[node name="Paths" type="Node2D" parent="."]
+
+[node name="PathGatherer" type="Path2D" parent="Paths"]
+
+[node name="PathBuilder" type="Path2D" parent="Paths"]
+
+[node name="PathSoldier" type="Path2D" parent="Paths"]
 
 [node name="QueenSprite" type="Sprite2D" parent="."]
 
@@ -16,6 +28,8 @@ position = Vector2(144, 192)
 
 [node name="QueenOverlay" type="ColorRect" parent="."]
 visible = false
-offset_right = 112.0
-offset_bottom = 144.0
+offset_left = 88.0
+offset_top = 188.0
+offset_right = 168.0
+offset_bottom = 244.0
 color = Color(1, 0.3, 0.3, 0.5)

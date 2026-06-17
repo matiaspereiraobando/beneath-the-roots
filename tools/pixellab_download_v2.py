@@ -54,6 +54,18 @@ def main() -> None:
             download_object(oid, UI_V2 / name)
             print("saved", UI_V2 / name)
 
+    micro = jobs.get("micro_nursery_v2", {})
+    SIDE = V2 / "side"
+    SIDE.mkdir(parents=True, exist_ok=True)
+    for key in ("gatherer_side", "builder_side", "soldier_side", "queen_side"):
+        entry = micro.get(key, {})
+        oid = entry.get("selected_object_id")
+        out = entry.get("output", "")
+        if oid and out:
+            dest = ROOT / out
+            download_object(oid, dest)
+            print("saved", dest)
+
 
 if __name__ == "__main__":
     main()

@@ -4,9 +4,9 @@
 
 - **Tone:** Grim underground survival
 - **Palette:** Desaturated browns (#3d2e22), dark tunnels (#2a1f18), acid green attacks (#6aff4a), queen purple (#6b2d5c)
-- **Grid:** Macro **32px** tiles; micro/citadel **32px** tiles (16px PixelLab sources upscaled at runtime)
+- **Grid:** Macro **32px** tiles; micro nursery **256×256** illustrated background (scaled to viewport)
 - **Macro view:** Side-view tilemap — [`macro_basic_tiles.png`](assets/tilesets/macro_basic_tiles.png) + [`macro_terrain_atlas.png`](assets/tilesets/macro_terrain_atlas.png), scrollable via WASD
-- **Micro view:** Top-down citadel tilemap (`assets/tilesets/citadel_interior.png`, 16px)
+- **Micro view:** Cross-section nursery illustration (`assets/micro/nursery_background.png`); ants patrol `Path2D` routes
 - **Entities in macro:** Side-view sprites at native size (scale 1,1) on the tilemap grid
 
 ## Sprite conventions
@@ -14,16 +14,18 @@
 | Asset | Size | Path |
 |-------|------|------|
 | Ants (macro worker, soldier) | 16×16 | `assets/sprites/` |
-| Ants (micro top-down) | 64×64 native (v2) | `assets/sprites/v2/` (fallback: legacy 16px upscaled) |
+| Ants (micro top-down, legacy) | 64×64 native (v2) | `assets/sprites/v2/` (macro only; micro uses side silhouettes) |
+| Ants (micro side-view) | 8–32px | `assets/sprites/v2/side/` or procedural [`nursery_ant_sprites.gd`](../scripts/util/nursery_ant_sprites.gd) |
 | Ant walk sheets | 64×N | `assets/sprites/v2/ants/` |
 | Queen (macro) | 48×48 | `assets/sprites/queen.png` |
-| Queen (micro room) | 32×32 | `assets/sprites/queen_micro.png` |
+| Queen (micro nursery) | ~28×22 placeholder | `assets/sprites/v2/side/queen_side.png` or procedural |
+| Nursery background | 256×256 | `assets/micro/nursery_background.png` (v2: `nursery_background_v2.png`) |
 | Enemies | 24×32 | `assets/sprites/` |
 | Towers / structures | 32×32 | `assets/sprites/` |
 | Tunnel tileset (legacy PNG) | 16×16 | `assets/sprites/tunnel-tileset.png` |
 | Macro basic tiles | 32×32 ×16 | `assets/tilesets/macro_basic_tiles.png` |
 | Macro dirt autotile atlas | 32×32 ×256 | `assets/tilesets/macro_terrain_atlas.png` |
-| Citadel interior tileset | 16×16 ×6 | `assets/tilesets/citadel_interior.png` |
+| Citadel interior tileset | 16×16 ×6 | `assets/tilesets/citadel_interior.png` (deprecated for micro; kept on disk) |
 | UI icons | 32×32 | `assets/sprites/ui/` |
 
 ## Macro terrain atlases (hand-drawn)
@@ -138,7 +140,19 @@ Queued to fix muddy downscaled look from legacy 16px assets. Each job returns **
 | Queen micro | `0056ebe1-a3e7-4dce-b167-cbf8add03b86` | `assets/sprites/v2/queen_micro.png` |
 | UI icons (8) | `50e01605-d57a-48ec-af4c-087642a60f01` | `assets/sprites/ui/v2/` |
 
-Loader prefers `v2/` paths automatically (`scripts/util/sprite_paths.gd`). Citadel tileset: user hand-painting nursery tiles.
+Loader prefers `v2/` paths automatically (`scripts/util/sprite_paths.gd`). Micro nursery uses illustrated background + side-view patrol sprites (`SpritePaths.micro_background()`, `micro_ant_sprite()`).
+
+### Micro nursery (cross-section)
+
+| Asset | Source | Path |
+|-------|--------|------|
+| Background v1 | User mock | `assets/micro/nursery_background.png` |
+| Background v2 | PixelLab `create_map_object` (optional) | `assets/micro/nursery_background_v2.png` |
+| Side ants | PixelLab sidescroller 32px (optional) | `assets/sprites/v2/side/*_side.png` |
+| Layout anchors | Code | `scripts/data/nursery_layout.gd` |
+| Path routes | Code + `Path2D` nodes | `scenes/citadel_world.tscn` |
+
+Legacy `citadel_interior.png` tile atlas is **deprecated** for the micro panel (file kept for reference).
 
 ## Integration workflow
 
@@ -155,4 +169,4 @@ Loader prefers `v2/` paths automatically (`scripts/util/sprite_paths.gd`). Citad
 
 ## Current state
 
-Game uses **hand-drawn macro terrain** and **PixelLab sprites** for entities. Micro citadel uses `citadel_interior.png` tile atlas, top-down ant sprites, and UI icon sheet from Sprint 02 PixelLab jobs (style-locked via `assets/raw/style_refs/`).
+Game uses **hand-drawn macro terrain** and **PixelLab sprites** for macro entities. Micro panel shows a **cross-section nursery** (`nursery_background.png`) with path-patrolling side-view ants; nursery queue UI uses v2 HUD icons from Sprint 02 PixelLab jobs.

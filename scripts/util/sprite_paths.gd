@@ -26,3 +26,31 @@ static func ui_icon(name: String) -> String:
 	if ResourceLoader.exists(v2):
 		return v2
 	return LEGACY_UI_DIR + name + ".png"
+
+
+static func micro_background() -> String:
+	var v2 := "res://assets/micro/nursery_background_v2.png"
+	if ResourceLoader.exists(v2):
+		return v2
+	return "res://assets/micro/nursery_background.png"
+
+
+static func micro_ant_sprite(ant_type: int) -> String:
+	const AntTypes = preload("res://scripts/data/ant_types.gd")
+	var names := {
+		AntTypes.Type.GATHERER: "gatherer_side",
+		AntTypes.Type.BUILDER: "builder_side",
+		AntTypes.Type.SOLDIER: "soldier_side",
+	}
+	var base: String = names.get(ant_type, "gatherer_side")
+	var path := V2_ANT_DIR + "side/" + base + ".png"
+	if ResourceLoader.exists(path):
+		return path
+	return ""
+
+
+static func micro_queen_sprite() -> String:
+	var path := V2_ANT_DIR + "side/queen_side.png"
+	if ResourceLoader.exists(path):
+		return path
+	return ""

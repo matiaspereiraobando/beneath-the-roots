@@ -16,7 +16,7 @@ Grim survival. Desaturated underground palette. Wet, organic violence. Queen HP 
 |-------|-------|------|
 | HUD | Full width, 48px top | Biomass, wave, phase, queen HP, satiety |
 | Macro (left) | 68% | Side-view **tilemap** (32px tiles, scrollable): sky/surface, tunnels, towers, enemies |
-| Micro (right) | 32% | Top-down **citadel tilemap**: queen room, nursery, armory |
+| Micro (right) | 32% | **Cross-section nursery**: illustrated tunnel map, queen chamber, path-patrolling ants |
 
 ### Macro map conventions (32px grid)
 
@@ -28,9 +28,9 @@ Grim survival. Desaturated underground palette. Wet, organic violence. Queen HP 
 | Enemies | A* pathfind on walkable tunnel tiles (static grid in Sprint 01; dynamic dig in Sprint 03) |
 | Camera | WASD pans the macro view; map larger than panel — path length unchanged in tile count |
 
-Macro entity sprites render at native size (`scale 1,1`). Micro citadel remains **16px** top-down.
+Macro entity sprites render at native size (`scale 1,1`). Micro nursery uses a **256×256 side-cutaway illustration** scaled to the SubViewport; ants are side-view silhouettes on `Path2D` patrol routes.
 
-Macro and micro show the **same citadel at different scales** (side cutaway vs floor plan).
+Macro (top-down strategy map) and micro (cross-section ant farm) show the **same colony** from different viewpoints.
 
 ## Timing model
 

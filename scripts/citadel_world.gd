@@ -1,133 +1,110 @@
 extends Node2D
 
 const AntType = preload("res://scripts/data/ant_types.gd").Type
-const CitadelTile = preload("res://scripts/util/placeholder_tilesets.gd").CitadelTile
+const NurseryLayout = preload("res://scripts/data/nursery_layout.gd")
+const NurseryAntSprites = preload("res://scripts/util/nursery_ant_sprites.gd")
 const PixelArt = preload("res://scripts/util/pixel_art.gd")
 const SpritePaths = preload("res://scripts/util/sprite_paths.gd")
 
 @onready var camera: Camera2D = $Camera2D
-@onready var floor_map: TileMapLayer = $FloorMap
-@onready var ants_root: Node2D = $Ants
+@onready var background: Sprite2D = $Background
+@onready var path_gatherer: Path2D = $Paths/PathGatherer
+@onready var path_builder: Path2D = $Paths/PathBuilder
+@onready var path_soldier: Path2D = $Paths/PathSoldier
 @onready var queen_sprite: Sprite2D = $QueenSprite
 @onready var queen_overlay: ColorRect = $QueenOverlay
 
-# Compact 32px grid — fits the micro viewport at readable scale.
-const GRID_W := 9
-const GRID_H := 12
-
-const ROOM_NURSERY := Rect2i(1, 2, 3, 3)
-const ROOM_ARMORY := Rect2i(5, 2, 3, 3)
-const ROOM_CORRIDOR := Rect2i(2, 5, 5, 1)
-const ROOM_QUEEN := Rect2i(2, 7, 5, 4)
+const PATROL_SPEED := 42.0
+const SIDE_SPRITE_SCALE := 2.0
+const AMBIENT_ANTS := {
+	AntType.GATHERER: 2,
+	AntType.BUILDER: 1,
+	AntType.SOLDIER: 1,
+}
 
 var _flash_time := 0.0
-var _citadel_tileset
-var _ant_sprites: Dictionary = {}
 var _ants: Array[Dictionary] = []
 var _max_visible_soldiers := 8
-var _tile_px: int = GameTuning.MICRO_TILE_SIZE
+var _path_by_type: Dictionary = {}
 
 
 func _ready() -> void:
-	_tile_px = GameTuning.MICRO_TILE_SIZE
-	_citadel_tileset = load("res://scripts/util/citadel_tileset.gd").new()
-	floor_map.tile_set = _citadel_tileset.tile_set
-	_load_ant_textures()
-	_paint_citadel()
+	_path_by_type = {
+		AntType.GATHERER: path_gatherer,
+		AntType.BUILDER: path_builder,
+		AntType.SOLDIER: path_soldier,
+	}
+	NurseryLayout.apply_path_curves(path_gatherer, path_builder, path_soldier)
+	_setup_background()
 	_setup_queen_sprite()
-	_fit_camera()
-	call_deferred("_fit_camera")
+	refit_camera()
+	call_deferred("refit_camera")
+	get_viewport().size_changed.connect(refit_camera)
 	GameState.citadel_breached.connect(_on_breach)
 	GameState.ant_spawned.connect(_on_ant_spawned)
 	GameState.level_loaded.connect(func(_id): _sync_ant_visuals())
 	queen_overlay.visible = false
+	_position_breach_overlay()
+	call_deferred("_sync_ant_visuals")
 
 
-func _fit_camera() -> void:
-	var map_size := Vector2(GRID_W * _tile_px, GRID_H * _tile_px)
-	camera.position = map_size * 0.5
-	var vp_size := get_viewport().get_visible_rect().size
-	if vp_size.x <= 0.0 or vp_size.y <= 0.0:
+func _setup_background() -> void:
+	var path := SpritePaths.micro_background()
+	var tex: Texture2D = null
+	if ResourceLoader.exists(path):
+		tex = load(path) as Texture2D
+	if tex == null:
+		tex = PixelArt.load_texture(path, 0, 1.0)
+	if tex == null:
+		push_warning("Nursery background missing: %s" % path)
 		return
-	var zoom_x := vp_size.x / map_size.x
-	var zoom_y := vp_size.y / map_size.y
-	var zoom := minf(zoom_x, zoom_y) * 0.96
-	camera.zoom = Vector2(zoom, zoom)
-
-
-func _load_ant_textures() -> void:
-	_ant_sprites[AntType.GATHERER] = _load_ant_sprite("gatherer", SpritePaths.ant_sprite("gatherer"))
-	_ant_sprites[AntType.BUILDER] = _load_ant_sprite("builder", SpritePaths.ant_sprite("builder"))
-	_ant_sprites[AntType.SOLDIER] = _load_ant_sprite("soldier", SpritePaths.ant_sprite("soldier_micro"))
-
-
-func _load_ant_sprite(base_name: String, static_path: String) -> Dictionary:
-	# Legacy 16px walk sheets upscale poorly; only use native v2 walk strips.
-	var walk_path := SpritePaths.ant_walk(base_name)
-	if walk_path.contains("/v2/") and ResourceLoader.exists(walk_path):
-		var sheet := PixelArt.load_texture(walk_path, 0, _sprite_brighten_for_path(walk_path))
-		if sheet:
-			var frame_w := sheet.get_height()
-			if frame_w <= 0:
-				frame_w = GameTuning.MICRO_SPRITE_NATIVE_SIZE
-			return {
-				"texture": sheet,
-				"frame_w": frame_w,
-				"frame_count": maxi(1, sheet.get_width() / frame_w),
-				"animated": true,
-				"scale": 1.0,
-			}
-	var static_tex := PixelArt.load_texture(
-		static_path,
-		GameTuning.MICRO_SPRITE_NATIVE_SIZE,
-		_sprite_brighten_for_path(static_path),
-	)
-	if static_tex == null:
-		return {}
-	var src_w := maxi(static_tex.get_width(), 1)
-	return {
-		"texture": static_tex,
-		"frame_w": src_w,
-		"frame_count": 1,
-		"animated": false,
-		"scale": 1.0,
-	}
-
-
-func _sprite_brighten_for_path(path: String) -> float:
-	if path.contains("/v2/"):
-		return 1.0
-	return GameTuning.MICRO_SPRITE_BRIGHTEN
+	background.texture = tex
+	background.centered = true
+	background.position = NurseryLayout.NATIVE_SIZE * 0.5
+	background.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 
 func _setup_queen_sprite() -> void:
-	var queen_path := SpritePaths.ant_sprite("queen_micro")
-	var tex := PixelArt.load_texture(queen_path, GameTuning.MICRO_SPRITE_NATIVE_SIZE, _sprite_brighten_for_path(queen_path))
+	var path := SpritePaths.micro_queen_sprite()
+	var tex: Texture2D
+	if path != "":
+		tex = PixelArt.load_texture(path, 0, 1.0)
 	if tex == null:
-		tex = PixelArt.load_texture("res://assets/sprites/queen.png", GameTuning.MICRO_SPRITE_NATIVE_SIZE, GameTuning.MICRO_SPRITE_BRIGHTEN)
+		tex = NurseryAntSprites.queen_texture()
 	queen_sprite.texture = tex
-	queen_sprite.position = Vector2(
-		(ROOM_QUEEN.position.x + ROOM_QUEEN.size.x * 0.5) * _tile_px,
-		(ROOM_QUEEN.position.y + ROOM_QUEEN.size.y * 0.5) * _tile_px,
-	)
+	queen_sprite.position = NurseryLayout.QUEEN_ANCHOR
 	queen_sprite.centered = true
+	queen_sprite.scale = Vector2(SIDE_SPRITE_SCALE, SIDE_SPRITE_SCALE)
+	queen_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 
-func _paint_citadel() -> void:
-	for y in GRID_H:
-		for x in GRID_W:
-			var tile := CitadelTile.FLOOR
-			if x == 0 or x == GRID_W - 1 or y == 0 or y == GRID_H - 1:
-				tile = CitadelTile.WALL
-			elif ROOM_QUEEN.has_point(Vector2i(x, y)):
-				tile = CitadelTile.QUEEN
-			elif ROOM_NURSERY.has_point(Vector2i(x, y)):
-				tile = CitadelTile.NURSERY
-			elif ROOM_ARMORY.has_point(Vector2i(x, y)):
-				tile = CitadelTile.ARMORY
-			elif y == ROOM_CORRIDOR.position.y and x >= ROOM_CORRIDOR.position.x and x < ROOM_CORRIDOR.position.x + ROOM_CORRIDOR.size.x:
-				tile = CitadelTile.CORRIDOR
-			floor_map.set_cell(Vector2i(x, y), 0, _citadel_tileset.tile_to_atlas(tile))
+func _position_breach_overlay() -> void:
+	var rect := NurseryLayout.BREACH_RECT
+	queen_overlay.position = rect.position
+	queen_overlay.size = rect.size
+
+
+func refit_camera() -> void:
+	var map_size := NurseryLayout.NATIVE_SIZE
+	camera.position = map_size * 0.5
+	camera.enabled = true
+	var vp_size := get_viewport().get_visible_rect().size
+	if vp_size.x <= 1.0 or vp_size.y <= 1.0:
+		return
+	var zoom_x := vp_size.x / map_size.x
+	var zoom_y := vp_size.y / map_size.y
+	# Fit full nursery; square viewport keeps margins minimal.
+	var zoom := minf(zoom_x, zoom_y) * 0.98
+	camera.zoom = Vector2(zoom, zoom)
+
+
+func _ant_texture(ant_type: int) -> Texture2D:
+	var path := SpritePaths.micro_ant_sprite(ant_type)
+	if path != "":
+		var tex := PixelArt.load_texture(path, 0, 1.0)
+		if tex:
+			return tex
+	return NurseryAntSprites.texture_for_type(ant_type)
 
 
 func _on_ant_spawned(ant_type: int) -> void:
@@ -135,9 +112,8 @@ func _on_ant_spawned(ant_type: int) -> void:
 
 
 func _sync_ant_visuals() -> void:
-	for child in ants_root.get_children():
-		child.queue_free()
-	_ants.clear()
+	_clear_ant_visuals()
+	_spawn_ambient_ants()
 	for i in GameState.gatherer_count:
 		_spawn_ant_visual(AntType.GATHERER)
 	for i in GameState.builder_count:
@@ -147,49 +123,48 @@ func _sync_ant_visuals() -> void:
 		_spawn_ant_visual(AntType.SOLDIER)
 
 
+func _clear_ant_visuals() -> void:
+	for route: Path2D in _path_by_type.values():
+		for child in route.get_children():
+			if child is PathFollow2D:
+				child.queue_free()
+	_ants.clear()
+
+
+func _spawn_ambient_ants() -> void:
+	for ant_type: int in AMBIENT_ANTS:
+		for i in AMBIENT_ANTS[ant_type]:
+			_spawn_ant_visual(ant_type)
+
+
 func _spawn_ant_visual(ant_type: int) -> void:
-	var sprite_data: Dictionary = _ant_sprites.get(ant_type, {})
-	var tex: Texture2D = sprite_data.get("texture")
+	var route: Path2D = _path_by_type.get(ant_type)
+	if route == null or route.curve == null or route.curve.point_count < 2:
+		return
+	var tex := _ant_texture(ant_type)
 	if tex == null:
 		return
+	var follower := PathFollow2D.new()
+	follower.rotates = false
+	route.add_child(follower)
 	var sprite := Sprite2D.new()
 	sprite.texture = tex
 	sprite.centered = true
-	var display_scale: float = sprite_data.get("scale", 1.0)
-	sprite.scale = Vector2(display_scale, display_scale)
-	if sprite_data.get("animated", false):
-		sprite.region_enabled = true
-		sprite.region_rect = Rect2(0, 0, sprite_data.frame_w, tex.get_height())
-	var room := _room_for_type(ant_type)
-	var pos := _random_point_in_room(room)
-	sprite.position = pos
-	ants_root.add_child(sprite)
+	sprite.scale = Vector2(SIDE_SPRITE_SCALE, SIDE_SPRITE_SCALE)
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	follower.add_child(sprite)
+	var length := route.curve.get_baked_length()
+	var start_offset := randf() * length
+	follower.progress = start_offset
 	_ants.append({
+		"follower": follower,
+		"route": route,
 		"sprite": sprite,
 		"type": ant_type,
-		"room": room,
-		"target": _random_point_in_room(room),
-		"frame": 0.0,
-		"frame_w": sprite_data.get("frame_w", _tile_px),
-		"frame_count": sprite_data.get("frame_count", 1),
-		"animated": sprite_data.get("animated", false),
+		"progress": start_offset,
+		"length": length,
+		"forward": randf() > 0.5,
 	})
-
-
-func _room_for_type(ant_type: int) -> Rect2i:
-	match ant_type:
-		AntType.GATHERER:
-			return ROOM_NURSERY
-		AntType.BUILDER:
-			return ROOM_CORRIDOR
-		_:
-			return ROOM_ARMORY
-
-
-func _random_point_in_room(room: Rect2i) -> Vector2:
-	var x := randi_range(room.position.x + 1, room.position.x + room.size.x - 2)
-	var y := randi_range(room.position.y + 1, room.position.y + room.size.y - 2)
-	return Vector2(x * _tile_px + _tile_px * 0.5, y * _tile_px + _tile_px * 0.5)
 
 
 func _process(delta: float) -> void:
@@ -203,23 +178,31 @@ func _process(delta: float) -> void:
 
 
 func _update_ants(delta: float) -> void:
-	const SPEED := 36.0
 	for ant in _ants:
+		var follower: PathFollow2D = ant.follower
 		var sprite: Sprite2D = ant.sprite
-		var target: Vector2 = ant.target
-		var pos: Vector2 = sprite.position
-		if pos.distance_to(target) < 3.0:
-			ant.target = _random_point_in_room(ant.room)
-			target = ant.target
-		sprite.position = pos.move_toward(target, SPEED * delta)
-		ant.frame += delta * 8.0
-		if ant.animated and ant.frame_count > 1:
-			var frame_idx: int = int(ant.frame) % int(ant.frame_count)
-			sprite.region_rect = Rect2(frame_idx * ant.frame_w, 0, ant.frame_w, sprite.texture.get_height())
+		var length: float = ant.length
+		if length <= 0.0:
+			continue
+		var step := PATROL_SPEED * delta
+		if ant.forward:
+			ant.progress += step
+			if ant.progress >= length:
+				ant.progress = length
+				ant.forward = false
+		else:
+			ant.progress -= step
+			if ant.progress <= 0.0:
+				ant.progress = 0.0
+				ant.forward = true
+		follower.progress = ant.progress
+		var curve: Curve2D = ant.route.curve
+		var p0 := curve.sample_baked(ant.progress)
+		var p1 := curve.sample_baked(clampf(ant.progress + 2.0, 0.0, length))
+		if absf(p1.x - p0.x) > 0.05:
+			sprite.flip_h = (p1.x - p0.x) < 0.0
 
 
 func _on_breach(_damage: int) -> void:
 	_flash_time = 0.5
 	queen_overlay.visible = true
-	queen_overlay.position = Vector2(ROOM_QUEEN.position.x * _tile_px, ROOM_QUEEN.position.y * _tile_px)
-	queen_overlay.size = Vector2(ROOM_QUEEN.size.x * _tile_px, ROOM_QUEEN.size.y * _tile_px)

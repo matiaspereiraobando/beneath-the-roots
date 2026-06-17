@@ -8,7 +8,9 @@ const SpritePaths = preload("res://scripts/util/sprite_paths.gd")
 const SLOT_ICON_SIZE := 36
 
 @onready var _satiety_label: Label = $Margin/VBox/SatietyLabel
+@onready var _viewport_container: SubViewportContainer = $Margin/VBox/SubViewportContainer
 @onready var _viewport: SubViewport = $Margin/VBox/SubViewportContainer/SubViewport
+@onready var _citadel_world: Node2D = $Margin/VBox/SubViewportContainer/SubViewport/CitadelWorld
 @onready var _colony_label: Label = $Margin/VBox/ColonyRow/ColonyLabel
 @onready var _feed_btn: Button = $Margin/VBox/ControlRow/FeedBtn
 @onready var _slot_row: HBoxContainer = $Margin/VBox/SlotRow
@@ -21,6 +23,7 @@ func _ready() -> void:
 	theme_type_variation = &"MicroPanel"
 	custom_minimum_size = Vector2(GameConfig.micro_width(), GameConfig.panel_height())
 	_resize_viewport()
+	_viewport.transparent_bg = false
 	_load_icons()
 	_build_slot_buttons()
 	_feed_btn.pressed.connect(_on_feed_pressed)
@@ -35,7 +38,18 @@ func _ready() -> void:
 func _resize_viewport() -> void:
 	var w := GameConfig.micro_width() - 16
 	var h := GameConfig.panel_height() - 96
-	_viewport.size = Vector2i(w, h)
+	# Square viewport matches 256×256 nursery art — avoids side letterboxing.
+	var side := mini(w, h)
+	_viewport_container.stretch = false
+	_viewport_container.custom_minimum_size = Vector2(side, side)
+	_viewport.size = Vector2i(side, side)
+	if _citadel_world.has_method("refit_camera"):
+		_citadel_world.refit_camera()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		call_deferred("_resize_viewport")
 
 
 func _load_icons() -> void:

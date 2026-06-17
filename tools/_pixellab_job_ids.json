@@ -91,6 +91,47 @@
       }
     }
   },
+  "micro_nursery_v2": {
+    "note": "Cross-section nursery background + sidescroller ants. Poll get_object / get_map_object, select frames, download to assets/micro/ and assets/sprites/v2/side/",
+    "background": {
+      "status": "pending",
+      "output": "assets/micro/nursery_background_v2.png",
+      "submit": "python tools/pixellab_submit_nursery_v2.py background",
+      "size": "256x256"
+    },
+    "gatherer_side": {
+      "object_id": "715cb843-a896-446f-91ff-cd9eb0acd49f",
+      "selected_frame": 24,
+      "selected_object_id": "d2b67d3b-9746-4bd9-bbfb-0d7640778688",
+      "status": "completed",
+      "output": "assets/sprites/v2/side/gatherer_side.png",
+      "size": "32x32"
+    },
+    "builder_side": {
+      "object_id": "979d5a43-3106-457d-a07a-8f93e3fa8740",
+      "selected_frame": 16,
+      "selected_object_id": "a0e09e30-0689-4305-ae54-71e38bbaab5a",
+      "status": "completed",
+      "output": "assets/sprites/v2/side/builder_side.png",
+      "size": "32x32"
+    },
+    "soldier_side": {
+      "object_id": "869746fc-89ac-4116-8029-fe9772552f38",
+      "selected_frame": 8,
+      "selected_object_id": "eb680b47-3d24-4c89-a2f2-6346185858c5",
+      "status": "completed",
+      "output": "assets/sprites/v2/side/soldier_side.png",
+      "size": "32x32"
+    },
+    "queen_side": {
+      "object_id": "5aa85c6b-43a7-4cfd-b993-295664399659",
+      "selected_frame": 9,
+      "selected_object_id": "0c673f1d-58e2-44b4-bee6-62c1be01ddc3",
+      "status": "completed",
+      "output": "assets/sprites/v2/side/queen_side.png",
+      "size": "48x48"
+    }
+  },
   "ui_icons_batch": {
     "object_id": "20467f16-09e3-4aeb-becd-3458912b7017",
     "status": "review_completed",
