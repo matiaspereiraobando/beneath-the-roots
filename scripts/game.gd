@@ -67,7 +67,7 @@ func _refresh_phase_label() -> void:
 	match GameState.phase:
 		GameState.Phase.BUILD:
 			var slots := "tile" if GameState.has_open_build_slot() else "no slot"
-			_phase_label.text = "BUILD %ds · %s · 1-5 build" % [
+			_phase_label.text = "BUILD %ds · %s · click tile" % [
 				int(ceilf(GameState.build_timer)),
 				slots,
 			]

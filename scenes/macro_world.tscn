@@ -19,29 +19,53 @@ script = ExtResource("1_world")
 follow_viewport_enabled = true
 layer = 10
 
-[node name="TowerMenu" type="PanelContainer" parent="UILayer"]
+[node name="HudLayer" type="CanvasLayer" parent="."]
+layer = 11
+
+[node name="BuildPicker" type="PanelContainer" parent="HudLayer"]
+visible = false
+offset_right = 200.0
+offset_bottom = 180.0
+
+[node name="VBox" type="VBoxContainer" parent="HudLayer/BuildPicker"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="HudLayer/BuildPicker/VBox"]
+layout_mode = 2
+text = "Build structure"
+
+[node name="Options" type="VBoxContainer" parent="HudLayer/BuildPicker/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="CloseBtn" type="Button" parent="HudLayer/BuildPicker/VBox"]
+layout_mode = 2
+text = "Cancel"
+
+[node name="TowerMenu" type="PanelContainer" parent="HudLayer"]
 visible = false
 offset_right = 140.0
 offset_bottom = 72.0
 
-[node name="VBox" type="VBoxContainer" parent="UILayer/TowerMenu"]
+[node name="VBox" type="VBoxContainer" parent="HudLayer/TowerMenu"]
 layout_mode = 2
 
-[node name="Info" type="Label" parent="UILayer/TowerMenu/VBox"]
+[node name="Info" type="Label" parent="HudLayer/TowerMenu/VBox"]
 layout_mode = 2
 text = "Spitter"
 
-[node name="Buttons" type="HBoxContainer" parent="UILayer/TowerMenu/VBox"]
+[node name="Buttons" type="HBoxContainer" parent="HudLayer/TowerMenu/VBox"]
 layout_mode = 2
 
-[node name="AddBtn" type="Button" parent="UILayer/TowerMenu/VBox/Buttons"]
+[node name="AddBtn" type="Button" parent="HudLayer/TowerMenu/VBox/Buttons"]
 layout_mode = 2
 text = "+Sol"
 
-[node name="RemoveBtn" type="Button" parent="UILayer/TowerMenu/VBox/Buttons"]
+[node name="RemoveBtn" type="Button" parent="HudLayer/TowerMenu/VBox/Buttons"]
 layout_mode = 2
 text = "-Sol"
 
-[node name="CloseBtn" type="Button" parent="UILayer/TowerMenu/VBox/Buttons"]
+[node name="CloseBtn" type="Button" parent="HudLayer/TowerMenu/VBox/Buttons"]
 layout_mode = 2
 text = "X"

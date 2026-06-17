@@ -31,6 +31,8 @@ signal dig_completed(cell: Vector2i)
 signal mine_placed(mine: Dictionary)
 signal mine_triggered(mine: Dictionary)
 signal cells_changed(cell: Vector2i)
+signal tower_fired(tower_id: int)
+signal combat_effects_changed
 
 const EMPTY_SLOT = preload("res://scripts/data/ant_types.gd").EMPTY_SLOT
 const NURSERY_SLOTS = preload("res://scripts/data/ant_types.gd").NURSERY_SLOTS
@@ -55,6 +57,7 @@ var towers: Array = []
 var mines: Array = []
 var dig_jobs: Array = []
 var projectiles: Array = []
+var combat_effects: Array = []
 
 var _next_enemy_id: int = 1
 var _next_tower_id: int = 1
@@ -93,6 +96,7 @@ func reset_for_level(level_id: String, starting_biomass: int = 50, max_hp: int =
 	mines.clear()
 	dig_jobs.clear()
 	projectiles.clear()
+	combat_effects.clear()
 	_spawn_queue.clear()
 	_wave_enemies_remaining = 0
 	_next_enemy_id = 1
@@ -497,6 +501,30 @@ func remove_projectiles(to_remove: Array) -> void:
 	for p in to_remove:
 		projectiles.erase(p)
 	projectiles_changed.emit()
+
+
+func add_combat_effect(effect: Dictionary) -> void:
+	var copy := effect.duplicate()
+	copy["life"] = float(copy.get("life", copy.get("max_life", 0.35)))
+	combat_effects.append(copy)
+	combat_effects_changed.emit()
+
+
+func tick_combat_effects(delta: float) -> void:
+	if combat_effects.is_empty():
+		return
+	var changed := false
+	for i in range(combat_effects.size() - 1, -1, -1):
+		combat_effects[i].life = float(combat_effects[i].life) - delta
+		if combat_effects[i].life <= 0.0:
+			combat_effects.remove_at(i)
+			changed = true
+	if changed:
+		combat_effects_changed.emit()
+
+
+func emit_tower_fired(tower_id: int) -> void:
+	tower_fired.emit(tower_id)
 
 
 func has_pending_spawns() -> bool:

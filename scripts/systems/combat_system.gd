@@ -53,6 +53,7 @@ func _fire_spitter(tower: Dictionary, center: Vector2, range_px: float, tid: int
 		"speed": GameTuning.PROJECTILE_SPEED,
 		"type": "spitter",
 	})
+	GameState.emit_tower_fired(tid)
 	_tower_cooldowns[tid] = 1.0 / _tower_fire_rate(tower)
 
 
@@ -68,6 +69,15 @@ func _fire_crusher(tower: Dictionary, center: Vector2, range_px: float, tid: int
 			enemy.hp = float(enemy.hp) - dmg
 			if enemy.hp <= 0:
 				GameState.kill_enemy(enemy)
+	GameState.add_combat_effect({
+		"type": "splash",
+		"x": center.x,
+		"y": center.y,
+		"radius": splash,
+		"color": TowerSprites.effect_color("crusher"),
+		"max_life": 0.28,
+	})
+	GameState.emit_tower_fired(tid)
 	_tower_cooldowns[tid] = 1.0 / _tower_fire_rate(tower)
 
 
@@ -83,6 +93,16 @@ func _fire_needle(tower: Dictionary, center: Vector2, range_px: float, tid: int)
 		enemy.hp = float(enemy.hp) - dmg
 		if enemy.hp <= 0:
 			GameState.kill_enemy(enemy)
+	GameState.add_combat_effect({
+		"type": "beam",
+		"x": center.x,
+		"y": center.y,
+		"tx": target.position.x,
+		"ty": target.position.y,
+		"color": TowerSprites.effect_color("needle"),
+		"max_life": 0.18,
+	})
+	GameState.emit_tower_fired(tid)
 	_tower_cooldowns[tid] = 1.0 / _tower_fire_rate(tower)
 
 
@@ -112,6 +132,14 @@ func _update_mines(delta: float) -> void:
 			if center.distance_to(enemy.position) <= GameTuning.MINE_TRIGGER_RADIUS:
 				enemy.hp = float(enemy.hp) - GameTuning.MINE_DAMAGE
 				GameState.trigger_mine(mine)
+				GameState.add_combat_effect({
+					"type": "splash",
+					"x": center.x,
+					"y": center.y,
+					"radius": 28.0,
+					"color": TowerSprites.effect_color("mine"),
+					"max_life": 0.35,
+				})
 				if enemy.hp <= 0:
 					GameState.kill_enemy(enemy)
 				break
