@@ -5,6 +5,8 @@ const SpritePaths = preload("res://scripts/util/sprite_paths.gd")
 const ColonyUiIcons = preload("res://scripts/util/colony_ui_icons.gd")
 const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
 
+const HUD_ICON_SIZE := 32
+
 @onready var _biomass_icon: TextureRect = $Margin/Row/BiomassBlock/IconWell/BiomassIcon
 @onready var _biomass_value: Label = $Margin/Row/BiomassBlock/BiomassText/Value
 @onready var _wave_label: Label = $Margin/Row/WavePill/PillRow/WaveLabel
@@ -15,8 +17,8 @@ const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
 @onready var _gatherer_count: Label = $Margin/Row/AntStrip/StripRow/GathererRow/Count
 @onready var _soldier_icon: TextureRect = $Margin/Row/AntStrip/StripRow/SoldierRow/Icon
 @onready var _soldier_count: Label = $Margin/Row/AntStrip/StripRow/SoldierRow/Count
-@onready var _hp_bar: Control = $Margin/Row/StatusColumn/HpRow/HpBar
-@onready var _satiety_bar: Control = $Margin/Row/StatusColumn/SatRow/SatBar
+@onready var _hp_bar: Control = $Margin/Row/StatusRow/HpRow/HpBar
+@onready var _satiety_bar: Control = $Margin/Row/StatusRow/SatRow/SatBar
 
 
 func _ready() -> void:
@@ -45,56 +47,27 @@ func _apply_panel_styles() -> void:
 		count_lbl.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE)
 	_hp_bar.set_fill_colors(HudThemeRes.ERROR.lerp(Color.BLACK, 0.2), HudThemeRes.HP_FILL_END)
 	_satiety_bar.set_fill_colors(HudThemeRes.SATIETY_FILL_START, HudThemeRes.SATIETY_FILL_END)
+	for bar in [_hp_bar, _satiety_bar]:
+		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		bar.custom_minimum_size = Vector2(bar.custom_minimum_size.x, HudThemeRes.FONT_STAT)
 
 
 func _load_icons() -> void:
-	var brighten := GameTuning.UI_ICON_BRIGHTEN
-	var biomass_size := 24
-	var ant_size := 18
-	var bar_icon_size := 16
-	_biomass_icon.texture = PixelArt.load_texture(
-		SpritePaths.ui_icon("icon_biomass"), biomass_size, brighten
-	)
-	_biomass_icon.custom_minimum_size = Vector2(biomass_size, biomass_size)
-	_builder_icon.texture = PixelArt.load_texture(
-		SpritePaths.ui_icon("icon_builder"), ant_size, brighten
-	)
-	_gatherer_icon.texture = PixelArt.load_texture(
-		SpritePaths.ui_icon("icon_gatherer"), ant_size, brighten
-	)
-	_soldier_icon.texture = PixelArt.load_texture(
-		SpritePaths.ui_icon("icon_soldier"), ant_size, brighten
-	)
-	for icon in [_builder_icon, _gatherer_icon, _soldier_icon]:
-		icon.custom_minimum_size = Vector2(ant_size, ant_size)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_biomass_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_biomass_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	var hp_icon: TextureRect = $Margin/Row/StatusColumn/HpRow/HpIcon
-	var sat_icon: TextureRect = $Margin/Row/StatusColumn/SatRow/SatIcon
-	hp_icon.texture = _make_heart_texture(bar_icon_size)
-	sat_icon.texture = PixelArt.load_texture(
-		SpritePaths.ui_icon("icon_satiety"), bar_icon_size, brighten
-	)
-	for icon in [hp_icon, sat_icon]:
-		icon.custom_minimum_size = Vector2(bar_icon_size, bar_icon_size)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_configure_icon(_biomass_icon, SpritePaths.hud_icon("biomass"))
+	_configure_icon(_builder_icon, SpritePaths.hud_icon("builders"))
+	_configure_icon(_gatherer_icon, SpritePaths.hud_icon("gatherers"))
+	_configure_icon(_soldier_icon, SpritePaths.hud_icon("soldiers"))
+	var hp_icon: TextureRect = $Margin/Row/StatusRow/HpRow/HpIcon
+	var sat_icon: TextureRect = $Margin/Row/StatusRow/SatRow/SatIcon
+	_configure_icon(hp_icon, SpritePaths.hud_icon("health"))
+	_configure_icon(sat_icon, SpritePaths.hud_icon("satiety"))
 
 
-func _make_heart_texture(tex_size: int) -> Texture2D:
-	var image := Image.create(tex_size, tex_size, false, Image.FORMAT_RGBA8)
-	image.fill(Color(0, 0, 0, 0))
-	var c := HudThemeRes.ERROR
-	for y in tex_size:
-		for x in tex_size:
-			var nx := (float(x) / float(tex_size - 1)) * 2.0 - 1.0
-			var ny := (float(y) / float(tex_size - 1)) * 2.0 - 1.0
-			var heart := pow(nx * nx + ny * ny - 0.3, 3.0) - nx * nx * ny * ny * ny
-			if heart <= 0.0:
-				image.set_pixel(x, y, c)
-	return ImageTexture.create_from_image(image)
+func _configure_icon(icon: TextureRect, path: String) -> void:
+	icon.texture = PixelArt.load_texture(path)
+	icon.custom_minimum_size = Vector2(HUD_ICON_SIZE, HUD_ICON_SIZE)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 
 
 func _wire_signals() -> void:

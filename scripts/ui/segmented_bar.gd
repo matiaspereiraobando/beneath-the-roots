@@ -11,7 +11,10 @@ var ratio: float = 1.0
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(80, 12)
+	size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	custom_minimum_size.y = HudThemeRes.FONT_STAT
+	if custom_minimum_size.x < 1.0:
+		custom_minimum_size.x = 80.0
 
 
 func set_ratio(value: float) -> void:
@@ -25,13 +28,20 @@ func set_fill_colors(start: Color, end: Color) -> void:
 	queue_redraw()
 
 
+func _bar_rect() -> Rect2:
+	var h := float(HudThemeRes.FONT_STAT)
+	var y := (size.y - h) * 0.5
+	return Rect2(Vector2(0.0, y), Vector2(size.x, h))
+
+
 func _draw() -> void:
+	var bar := _bar_rect()
 	var trough := HudThemeRes.carved_trough()
-	draw_style_box(trough, Rect2(Vector2.ZERO, size))
-	var fill_w := (size.x - 2.0) * ratio
+	draw_style_box(trough, bar)
+	var fill_w := (bar.size.x - 2.0) * ratio
 	if fill_w <= 0.0:
 		return
-	var inner := Rect2(Vector2(1, 1), Vector2(fill_w, size.y - 2.0))
+	var inner := Rect2(bar.position + Vector2(1.0, 1.0), Vector2(fill_w, bar.size.y - 2.0))
 	var steps := maxi(1, int(ceilf(inner.size.x / segment_width)))
 	for i in steps:
 		var t0 := float(i) / float(steps)

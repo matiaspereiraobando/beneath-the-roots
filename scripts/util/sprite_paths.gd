@@ -28,6 +28,10 @@ static func ui_icon(name: String) -> String:
 	return LEGACY_UI_DIR + name + ".png"
 
 
+static func hud_icon(kind: String) -> String:
+	return "res://assets/%s_icon_32.png" % kind
+
+
 static func micro_background() -> String:
 	var v2 := "res://assets/micro/nursery_background_v2.png"
 	if ResourceLoader.exists(v2):
