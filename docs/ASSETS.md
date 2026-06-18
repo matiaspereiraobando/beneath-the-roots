@@ -21,7 +21,8 @@
 | Queen (micro nursery) | ~28×22 placeholder | `assets/sprites/v2/side/queen_side.png` or procedural |
 | Nursery background | 256×256 | `assets/micro/nursery_background.png` (v2: `nursery_background_v2.png`) |
 | Enemies | 24×32 | `assets/sprites/` |
-| Towers / structures | 32×32 | `assets/sprites/` |
+| Towers / structures | 64×64 idle sheets (2×2 footprint) | `assets/sprites/structures/<id>/` |
+| Fungal mine | 32×32 idle sheet (1×1) | `assets/sprites/structures/mine/` |
 | Tunnel tileset (legacy PNG) | 16×16 | `assets/sprites/tunnel-tileset.png` |
 | Macro basic tiles | 32×32 ×16 | `assets/tilesets/macro_basic_tiles.png` |
 | Macro dirt autotile atlas | 32×32 ×256 | `assets/tilesets/macro_terrain_atlas.png` |
@@ -167,6 +168,22 @@ Legacy `citadel_interior.png` tile atlas is **deprecated** for the micro panel (
 - **UI font:** `assets/fonts/pixel.ttf` — [Silkscreen](https://fonts.google.com/specimen/Silkscreen) (OFL)
 - Import: antialiasing off, hinting none (see `[importer_defaults]` in `project.godot`)
 - **Sizing:** Silkscreen is drawn on an **8px grid** — use only **8, 16, 24, 32…** px. Other sizes (9, 10, 17, 18) scale poorly and look blurry. HUD uses `HudTheme.apply_pixel_label()`.
+
+## Structure idle animations
+
+Author in GIF, ship as horizontal sprite sheets for Godot `AnimatedSprite2D`:
+
+| Structure | Source GIF | Frames | Size | Runtime sheet |
+|-----------|------------|--------|------|----------------|
+| spitter | `structures/spitter/idle.gif` | 9 | 64×64 | `idle_sheet.png` |
+| crusher | `structures/crusher/idle.gif` | 13 | 64×64 | `idle_sheet.png` |
+| needle | `structures/needle/idle.gif` | 13 | 64×64 | `idle_sheet.png` |
+| gland | `structures/gland/idle.gif` | 12 | 64×64 | `idle_sheet.png` |
+| mine | `structures/mine/idle.gif` | 9 | 32×32 | `idle_sheet.png` |
+
+Re-export after GIF edits: `python tools/extract_structure_gifs.py` (place legacy `*_idle_animation.gif` files in `assets/` first, or copy into per-structure folders manually).
+
+Loader: [`scripts/util/tower_sprites.gd`](../scripts/util/tower_sprites.gd) (`make_structure_sprite_frames`).
 
 ## Current state
 

@@ -626,22 +626,21 @@ func _tower_sprite_position(tower: Dictionary) -> Vector2:
 
 
 func _tower_sprite_scale(tower: Dictionary) -> Vector2:
-	var tex: Texture2D = _textures.get(tower.type, _textures.spitter)
-	if tex == null:
-		return Vector2.ONE
-	var tex_size := tex.get_size()
-	if tex_size.x <= 0.0 or tex_size.y <= 0.0:
+	var native := TowerSprites.structure_native_size(str(tower.type))
+	if native.x <= 0 or native.y <= 0:
 		return Vector2.ONE
 	var footprint := Vector2(
 		float(tower.get("width", 2)) * GameTuning.TILE_SIZE,
 		float(tower.get("height", 2)) * GameTuning.TILE_SIZE,
 	)
-	return Vector2(footprint.x / tex_size.x, footprint.y / tex_size.y)
+	return Vector2(footprint.x / float(native.x), footprint.y / float(native.y))
 
 
 func _on_tower_placed(tower: Dictionary) -> void:
-	var sprite := Sprite2D.new()
-	sprite.texture = _textures.get(tower.type, _textures.spitter)
+	var sprite := AnimatedSprite2D.new()
+	sprite.sprite_frames = TowerSprites.make_structure_sprite_frames(tower.type)
+	sprite.animation = &"idle"
+	sprite.play()
 	sprite.position = _tower_sprite_position(tower)
 	sprite.scale = _tower_sprite_scale(tower)
 	towers_root.add_child(sprite)
@@ -652,7 +651,7 @@ func _on_tower_placed(tower: Dictionary) -> void:
 func _on_tower_fired(tower_id: int) -> void:
 	if not _tower_sprites.has(tower_id):
 		return
-	var sprite: Sprite2D = _tower_sprites[tower_id]
+	var sprite: AnimatedSprite2D = _tower_sprites[tower_id]
 	if sprite.has_meta("flash_tween") and sprite.get_meta("flash_tween").is_valid():
 		sprite.get_meta("flash_tween").kill()
 	var tween := create_tween()
@@ -731,13 +730,14 @@ func _sync_mine_sprite(mine: Dictionary) -> void:
 	var id: int = mine.id
 	var center := _pathfinding.tile_center(Vector2i(mine.tile_x, mine.tile_y))
 	if not _mine_sprites.has(id):
-		var dot := Sprite2D.new()
-		dot.texture = _textures.get("mine")
-		dot.scale = Vector2(0.75, 0.75)
-		dot.position = center
-		_mines_root.add_child(dot)
-		_mine_sprites[id] = dot
-	var sprite: Sprite2D = _mine_sprites[id]
+		var anim := AnimatedSprite2D.new()
+		anim.sprite_frames = TowerSprites.make_structure_sprite_frames("mine")
+		anim.animation = &"idle"
+		anim.play()
+		anim.position = center
+		_mines_root.add_child(anim)
+		_mine_sprites[id] = anim
+	var sprite: AnimatedSprite2D = _mine_sprites[id]
 	sprite.position = center
 	sprite.modulate = Color.WHITE if mine.armed else Color(0.45, 0.45, 0.45, 0.7)
 

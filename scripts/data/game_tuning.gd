@@ -29,6 +29,7 @@ const TOWER_BASE_SLOTS := 2
 const SOLDIER_DPS_BONUS := 2.0
 const SOLDIER_FIRE_RATE_BONUS := 0.15
 const PROJECTILE_SPEED := 400.0
+const STRUCTURE_IDLE_FRAME_SEC := 0.5
 
 const TOWER_COSTS := {
 	"spitter": 40,
