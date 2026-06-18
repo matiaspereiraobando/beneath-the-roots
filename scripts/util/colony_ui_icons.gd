@@ -55,6 +55,14 @@ static func satiety_color(value: float) -> Color:
 	return Color(0.55, 0.95, 0.55)
 
 
+static func hp_color(ratio: float) -> Color:
+	if ratio < 0.25:
+		return Color(1, 0.45, 0.45)
+	if ratio < 0.5:
+		return Color(1, 0.85, 0.5)
+	return Color(0.55, 0.95, 0.55)
+
+
 static func _make_color_tex(color: Color, icon_size: int) -> Texture2D:
 	var image := Image.create(icon_size, icon_size, false, Image.FORMAT_RGBA8)
 	image.fill(color)

@@ -45,8 +45,8 @@ func _apply_panel_styles() -> void:
 	for count_lbl in [_builder_count, _gatherer_count, _soldier_count]:
 		HudThemeRes.apply_pixel_label(count_lbl, HudThemeRes.FONT_STAT)
 		count_lbl.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE)
-	_hp_bar.set_fill_colors(HudThemeRes.ERROR.lerp(Color.BLACK, 0.2), HudThemeRes.HP_FILL_END)
-	_satiety_bar.set_fill_colors(HudThemeRes.SATIETY_FILL_START, HudThemeRes.SATIETY_FILL_END)
+	_hp_bar.set_fill_color(ColonyUiIcons.hp_color(1.0))
+	_satiety_bar.set_fill_color(ColonyUiIcons.satiety_color(100.0))
 	for bar in [_hp_bar, _satiety_bar]:
 		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		bar.custom_minimum_size = Vector2(bar.custom_minimum_size.x, HudThemeRes.FONT_STAT)
@@ -122,13 +122,11 @@ func _refresh_ants(_count: int = 0) -> void:
 
 func _on_queen_hp_changed(current: int, maximum: int) -> void:
 	var max_hp := maxf(1.0, float(maximum))
-	_hp_bar.set_ratio(float(current) / max_hp)
+	var ratio := float(current) / max_hp
+	_hp_bar.set_ratio(ratio)
+	_hp_bar.set_fill_color(ColonyUiIcons.hp_color(ratio))
 
 
 func _on_satiety_changed(value: float) -> void:
 	_satiety_bar.set_ratio(value / 100.0)
-	var col := ColonyUiIcons.satiety_color(value)
-	_satiety_bar.set_fill_colors(
-		col.darkened(0.25),
-		col,
-	)
+	_satiety_bar.set_fill_color(ColonyUiIcons.satiety_color(value))
