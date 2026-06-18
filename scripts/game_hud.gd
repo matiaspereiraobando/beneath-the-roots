@@ -1,24 +1,29 @@
 extends PanelContainer
 
-const PixelArt = preload("res://scripts/util/pixel_art.gd")
+const AntType = preload("res://scripts/data/ant_types.gd").Type
 const SpritePaths = preload("res://scripts/util/sprite_paths.gd")
 const ColonyUiIcons = preload("res://scripts/util/colony_ui_icons.gd")
 const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
+const HudIconAnimator = preload("res://scripts/ui/hud_icon_animator.gd")
 
 const HUD_ICON_SIZE := 32
 
-@onready var _biomass_icon: TextureRect = $Margin/Row/BiomassBlock/IconWell/BiomassIcon
+@onready var _biomass_icon: HudIconAnimator = $Margin/Row/BiomassBlock/IconWell/BiomassIcon
 @onready var _biomass_value: Label = $Margin/Row/BiomassBlock/BiomassText/Value
 @onready var _wave_label: Label = $Margin/Row/WavePill/PillRow/WaveLabel
 @onready var _wave_ring: Control = $Margin/Row/WavePill/PillRow/WaveRing
-@onready var _builder_icon: TextureRect = $Margin/Row/AntStrip/StripRow/BuilderRow/Icon
+@onready var _builder_icon: HudIconAnimator = $Margin/Row/AntStrip/StripRow/BuilderRow/Icon
 @onready var _builder_count: Label = $Margin/Row/AntStrip/StripRow/BuilderRow/Count
-@onready var _gatherer_icon: TextureRect = $Margin/Row/AntStrip/StripRow/GathererRow/Icon
+@onready var _gatherer_icon: HudIconAnimator = $Margin/Row/AntStrip/StripRow/GathererRow/Icon
 @onready var _gatherer_count: Label = $Margin/Row/AntStrip/StripRow/GathererRow/Count
-@onready var _soldier_icon: TextureRect = $Margin/Row/AntStrip/StripRow/SoldierRow/Icon
+@onready var _soldier_icon: HudIconAnimator = $Margin/Row/AntStrip/StripRow/SoldierRow/Icon
 @onready var _soldier_count: Label = $Margin/Row/AntStrip/StripRow/SoldierRow/Count
 @onready var _hp_bar: Control = $Margin/Row/StatusRow/HpRow/HpBar
+@onready var _hp_icon: HudIconAnimator = $Margin/Row/StatusRow/HpRow/HpIcon
 @onready var _satiety_bar: Control = $Margin/Row/StatusRow/SatRow/SatBar
+@onready var _satiety_icon: HudIconAnimator = $Margin/Row/StatusRow/SatRow/SatIcon
+
+var _ant_icon_by_type: Dictionary = {}
 
 
 func _ready() -> void:
@@ -53,21 +58,48 @@ func _apply_panel_styles() -> void:
 
 
 func _load_icons() -> void:
-	_configure_icon(_biomass_icon, SpritePaths.hud_icon("biomass"))
-	_configure_icon(_builder_icon, SpritePaths.hud_icon("builders"))
-	_configure_icon(_gatherer_icon, SpritePaths.hud_icon("gatherers"))
-	_configure_icon(_soldier_icon, SpritePaths.hud_icon("soldiers"))
-	var hp_icon: TextureRect = $Margin/Row/StatusRow/HpRow/HpIcon
-	var sat_icon: TextureRect = $Margin/Row/StatusRow/SatRow/SatIcon
-	_configure_icon(hp_icon, SpritePaths.hud_icon("health"))
-	_configure_icon(sat_icon, SpritePaths.hud_icon("satiety"))
+	_setup_looping_icon(_biomass_icon, "biomass")
+	_setup_ant_icon(_builder_icon, "builders", AntType.BUILDER)
+	_setup_ant_icon(_gatherer_icon, "gatherers", AntType.GATHERER)
+	_setup_ant_icon(_soldier_icon, "soldiers", AntType.SOLDIER)
+	_setup_status_icon(_hp_icon, "health")
+	_setup_status_icon(_satiety_icon, "satiety")
 
 
-func _configure_icon(icon: TextureRect, path: String) -> void:
-	icon.texture = PixelArt.load_texture(path)
+func _setup_looping_icon(icon: HudIconAnimator, kind: String) -> void:
 	icon.custom_minimum_size = Vector2(HUD_ICON_SIZE, HUD_ICON_SIZE)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.setup(
+		SpritePaths.hud_icon(kind),
+		SpritePaths.hud_icon_anim_sheet(kind),
+		SpritePaths.hud_icon_anim_meta(kind),
+	)
+	icon.play_loop()
+
+
+func _setup_status_icon(icon: HudIconAnimator, kind: String) -> void:
+	icon.custom_minimum_size = Vector2(HUD_ICON_SIZE, HUD_ICON_SIZE)
+	icon.setup(
+		SpritePaths.hud_icon(kind),
+		SpritePaths.hud_icon_anim_sheet(kind),
+		SpritePaths.hud_icon_anim_meta(kind),
+	)
+
+
+func _update_status_icon_anim(icon: HudIconAnimator, is_critical: bool) -> void:
+	if is_critical:
+		icon.play_loop()
+	else:
+		icon.stop()
+
+
+func _setup_ant_icon(icon: HudIconAnimator, kind: String, ant_type: int) -> void:
+	icon.custom_minimum_size = Vector2(HUD_ICON_SIZE, HUD_ICON_SIZE)
+	icon.setup(
+		SpritePaths.hud_icon(kind),
+		SpritePaths.hud_icon_anim_sheet(kind),
+		SpritePaths.hud_icon_anim_meta(kind),
+	)
+	_ant_icon_by_type[ant_type] = icon
 
 
 func _wire_signals() -> void:
@@ -78,6 +110,7 @@ func _wire_signals() -> void:
 	GameState.soldiers_changed.connect(_refresh_ants)
 	GameState.queen_hp_changed.connect(_on_queen_hp_changed)
 	GameState.queen_satiety_changed.connect(_on_satiety_changed)
+	GameState.ant_spawned.connect(_on_ant_spawned)
 	GameState.level_loaded.connect(func(_id): _refresh_all())
 
 
@@ -125,8 +158,16 @@ func _on_queen_hp_changed(current: int, maximum: int) -> void:
 	var ratio := float(current) / max_hp
 	_hp_bar.set_ratio(ratio)
 	_hp_bar.set_fill_color(ColonyUiIcons.hp_color(ratio))
+	_update_status_icon_anim(_hp_icon, ColonyUiIcons.hp_is_critical(ratio))
 
 
 func _on_satiety_changed(value: float) -> void:
 	_satiety_bar.set_ratio(value / 100.0)
 	_satiety_bar.set_fill_color(ColonyUiIcons.satiety_color(value))
+	_update_status_icon_anim(_satiety_icon, ColonyUiIcons.satiety_is_critical(value))
+
+
+func _on_ant_spawned(ant_type: int) -> void:
+	var icon: HudIconAnimator = _ant_icon_by_type.get(ant_type)
+	if icon:
+		icon.play(2)

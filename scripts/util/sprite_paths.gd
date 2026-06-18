@@ -3,6 +3,7 @@ class_name SpritePaths
 
 const V2_ANT_DIR := "res://assets/sprites/v2/"
 const V2_UI_DIR := "res://assets/sprites/ui/v2/"
+const HUD_ICON_DIR := "res://assets/sprites/ui/hud/"
 const LEGACY_ANT_DIR := "res://assets/sprites/"
 const LEGACY_UI_DIR := "res://assets/sprites/ui/"
 
@@ -29,7 +30,15 @@ static func ui_icon(name: String) -> String:
 
 
 static func hud_icon(kind: String) -> String:
-	return "res://assets/%s_icon_32.png" % kind
+	return HUD_ICON_DIR + "%s_icon_32.png" % kind
+
+
+static func hud_icon_anim_sheet(kind: String) -> String:
+	return HUD_ICON_DIR + "%s_icon_32_anim_sheet.png" % kind
+
+
+static func hud_icon_anim_meta(kind: String) -> String:
+	return HUD_ICON_DIR + "%s_icon_32_anim.meta.txt" % kind
 
 
 static func micro_background() -> String:

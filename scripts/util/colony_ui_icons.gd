@@ -48,19 +48,27 @@ static func refresh_slot_buttons(buttons: Array, icon_map: Dictionary) -> void:
 
 
 static func satiety_color(value: float) -> Color:
-	if value < GameTuning.STARVE_THRESHOLD:
+	if satiety_is_critical(value):
 		return Color(1, 0.45, 0.45)
 	if value < GameTuning.AUTO_FEED_THRESHOLD:
 		return Color(1, 0.85, 0.5)
 	return Color(0.55, 0.95, 0.55)
 
 
+static func satiety_is_critical(value: float) -> bool:
+	return value < GameTuning.STARVE_THRESHOLD
+
+
 static func hp_color(ratio: float) -> Color:
-	if ratio < 0.25:
+	if hp_is_critical(ratio):
 		return Color(1, 0.45, 0.45)
 	if ratio < 0.5:
 		return Color(1, 0.85, 0.5)
 	return Color(0.55, 0.95, 0.55)
+
+
+static func hp_is_critical(ratio: float) -> bool:
+	return ratio < 0.25
 
 
 static func _make_color_tex(color: Color, icon_size: int) -> Texture2D:

@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://btr_game_hud"]
+[gd_scene load_steps=5 format=3 uid="uid://btr_game_hud"]
 
 [ext_resource type="Script" path="res://scripts/game_hud.gd" id="1_hud"]
 [ext_resource type="Script" path="res://scripts/ui/wave_timer_ring.gd" id="2_ring"]
 [ext_resource type="Script" path="res://scripts/ui/segmented_bar.gd" id="3_bar"]
+[ext_resource type="Script" path="res://scripts/ui/hud_icon_animator.gd" id="4_anim"]
 
 [node name="GameHud" type="PanelContainer"]
 custom_minimum_size = Vector2(960, 56)
@@ -36,6 +37,7 @@ size_flags_horizontal = 4
 size_flags_vertical = 4
 expand_mode = 1
 stretch_mode = 5
+script = ExtResource("4_anim")
 
 [node name="BiomassText" type="VBoxContainer" parent="Margin/Row/BiomassBlock"]
 layout_mode = 2
@@ -109,6 +111,7 @@ custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
+script = ExtResource("4_anim")
 
 [node name="Count" type="Label" parent="Margin/Row/AntStrip/StripRow/BuilderRow"]
 layout_mode = 2
@@ -128,6 +131,7 @@ custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
+script = ExtResource("4_anim")
 
 [node name="Count" type="Label" parent="Margin/Row/AntStrip/StripRow/GathererRow"]
 layout_mode = 2
@@ -147,6 +151,7 @@ custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
+script = ExtResource("4_anim")
 
 [node name="Count" type="Label" parent="Margin/Row/AntStrip/StripRow/SoldierRow"]
 layout_mode = 2
@@ -173,6 +178,7 @@ custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
+script = ExtResource("4_anim")
 
 [node name="SatBar" type="Control" parent="Margin/Row/StatusRow/SatRow"]
 custom_minimum_size = Vector2(72, 16)
@@ -190,6 +196,7 @@ custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
+script = ExtResource("4_anim")
 
 [node name="HpBar" type="Control" parent="Margin/Row/StatusRow/HpRow"]
 custom_minimum_size = Vector2(72, 16)

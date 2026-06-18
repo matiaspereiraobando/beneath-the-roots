@@ -1,0 +1,4 @@
+frames=9
+width=32
+height=32
+frame_ms=150
