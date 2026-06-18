@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
 [ext_resource type="PackedScene" uid="uid://btr_macro_panel" path="res://scenes/macro_panel.tscn" id="2_macro"]
 [ext_resource type="PackedScene" uid="uid://btr_colony_panel" path="res://scenes/colony_panel.tscn" id="3_colony"]
+[ext_resource type="PackedScene" uid="uid://btr_game_hud" path="res://scenes/game_hud.tscn" id="4_hud"]
 
 [node name="Game" type="Control"]
 layout_mode = 3
@@ -31,76 +32,8 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 0
 
-[node name="HUD" type="PanelContainer" parent="Root"]
-clip_contents = true
-custom_minimum_size = Vector2(0, 48)
+[node name="HUD" parent="Root" instance=ExtResource("4_hud")]
 layout_mode = 2
-
-[node name="HudMargin" type="MarginContainer" parent="Root/HUD"]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 4
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 4
-
-[node name="HudRow" type="HBoxContainer" parent="Root/HUD/HudMargin"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="BiomassRow" type="HBoxContainer" parent="Root/HUD/HudMargin/HudRow"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="BiomassIcon" type="TextureRect" parent="Root/HUD/HudMargin/HudRow/BiomassRow"]
-custom_minimum_size = Vector2(24, 24)
-layout_mode = 2
-
-[node name="BiomassLabel" type="Label" parent="Root/HUD/HudMargin/HudRow/BiomassRow"]
-layout_mode = 2
-text = "0"
-
-[node name="WaveLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
-layout_mode = 2
-text = "Wave: 1"
-
-[node name="PhaseLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-clip_text = true
-text_overrun_behavior = 3
-text = "BUILD"
-
-[node name="SoldiersRow" type="HBoxContainer" parent="Root/HUD/HudMargin/HudRow"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="SoldiersIcon" type="TextureRect" parent="Root/HUD/HudMargin/HudRow/SoldiersRow"]
-custom_minimum_size = Vector2(24, 24)
-layout_mode = 2
-
-[node name="SoldiersLabel" type="Label" parent="Root/HUD/HudMargin/HudRow/SoldiersRow"]
-layout_mode = 2
-text = "0"
-
-[node name="Spacer" type="Control" parent="Root/HUD/HudMargin/HudRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="QueenHpLabel" type="Label" parent="Root/HUD/HudMargin/HudRow"]
-layout_mode = 2
-text = "Queen HP: 100"
-
-[node name="SatietyRow" type="HBoxContainer" parent="Root/HUD/HudMargin/HudRow"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="SatietyIcon" type="TextureRect" parent="Root/HUD/HudMargin/HudRow/SatietyRow"]
-custom_minimum_size = Vector2(24, 24)
-layout_mode = 2
-
-[node name="SatietyLabel" type="Label" parent="Root/HUD/HudMargin/HudRow/SatietyRow"]
-layout_mode = 2
-text = "100"
 
 [node name="Content" type="Control" parent="Root"]
 layout_mode = 2

@@ -166,6 +166,7 @@ Legacy `citadel_interior.png` tile atlas is **deprecated** for the micro panel (
 
 - **UI font:** `assets/fonts/pixel.ttf` — [Silkscreen](https://fonts.google.com/specimen/Silkscreen) (OFL)
 - Import: antialiasing off, hinting none (see `[importer_defaults]` in `project.godot`)
+- **Sizing:** Silkscreen is drawn on an **8px grid** — use only **8, 16, 24, 32…** px. Other sizes (9, 10, 17, 18) scale poorly and look blurry. HUD uses `HudTheme.apply_pixel_label()`.
 
 ## Current state
 

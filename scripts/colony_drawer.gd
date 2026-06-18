@@ -3,6 +3,7 @@ extends PanelContainer
 signal collapse_requested
 
 const AntType = preload("res://scripts/data/ant_types.gd").Type
+const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
 const DRAWER_SLOT_SIZE := 32
 
 @onready var _collapse_btn: Button = $Margin/Scroll/VBox/HeaderRow/CollapseBtn
@@ -10,6 +11,7 @@ const DRAWER_SLOT_SIZE := 32
 @onready var _feed_btn: Button = $Margin/Scroll/VBox/FeedBtn
 @onready var _colony_label: Label = $Margin/Scroll/VBox/ColonyLabel
 @onready var _slot_col: VBoxContainer = $Margin/Scroll/VBox/SlotCol
+@onready var _placeholder: Label = $Margin/Scroll/VBox/FutureActions/Placeholder
 
 var _icon_textures: Dictionary = {}
 var _slot_buttons: Array[TextureButton] = []
@@ -17,6 +19,7 @@ var _slot_buttons: Array[TextureButton] = []
 
 func _ready() -> void:
 	theme_type_variation = &"ColonyDrawer"
+	_apply_fonts()
 	_icon_textures = ColonyUiIcons.load_icon_map(DRAWER_SLOT_SIZE)
 	_build_slot_buttons()
 	_collapse_btn.pressed.connect(func() -> void: collapse_requested.emit())
@@ -27,6 +30,14 @@ func _ready() -> void:
 	_on_satiety_changed(GameState.queen_satiety)
 	call_deferred("_refresh_slots")
 	call_deferred("_refresh_colony_counts")
+
+
+func _apply_fonts() -> void:
+	var title: Label = $Margin/Scroll/VBox/HeaderRow/Title
+	for node in [title, _satiety_label, _colony_label, _placeholder]:
+		HudThemeRes.apply_pixel_font(node, HudThemeRes.FONT_STAT)
+	for btn in [_collapse_btn, _feed_btn]:
+		HudThemeRes.apply_pixel_font(btn, HudThemeRes.FONT_STAT)
 
 
 func _build_slot_buttons() -> void:

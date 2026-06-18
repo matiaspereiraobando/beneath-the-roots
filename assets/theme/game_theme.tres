@@ -1,4 +1,19 @@
-[gd_resource type="Theme" load_steps=5 format=3 uid="uid://btr_game_theme"]
+[gd_resource type="Theme" load_steps=6 format=3 uid="uid://btr_game_theme"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_game_hud"]
+bg_color = Color(0.101961, 0.109804, 0.117647, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 4
+border_color = Color(0.254902, 0.298039, 0.231373, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.35)
+shadow_size = 2
+shadow_offset = Vector2(0, 2)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
 bg_color = Color(0.239216, 0.180392, 0.133333, 1)
@@ -51,8 +66,8 @@ Button/styles/normal = SubResource("StyleBoxFlat_btn_normal")
 Button/styles/pressed = SubResource("StyleBoxFlat_btn_normal")
 Label/colors/font_color = Color(0.831373, 0.768627, 0.67451, 1)
 Label/colors/font_outline_color = Color(0, 0, 0, 1)
-Label/constants/outline_size = 4
-Label/font_sizes/font_size = 17
+Label/constants/outline_size = 3
+Label/font_sizes/font_size = 16
 PanelContainer/styles/panel = SubResource("StyleBoxFlat_hud")
 MacroPanel/base_type = &"PanelContainer"
 MacroPanel/styles/panel = SubResource("StyleBoxFlat_macro")
@@ -62,3 +77,5 @@ ColonyRail/base_type = &"PanelContainer"
 ColonyRail/styles/panel = SubResource("StyleBoxFlat_micro")
 ColonyDrawer/base_type = &"PanelContainer"
 ColonyDrawer/styles/panel = SubResource("StyleBoxFlat_micro")
+GameHud/base_type = &"PanelContainer"
+GameHud/styles/panel = SubResource("StyleBoxFlat_game_hud")

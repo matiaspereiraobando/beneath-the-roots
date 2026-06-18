@@ -14,7 +14,7 @@ Grim survival. Desaturated underground palette. Wet, organic violence. Queen HP 
 
 | Panel | Width | Role |
 |-------|-------|------|
-| HUD | Full width, 48px top | Biomass, wave, phase, queen HP, satiety |
+| HUD | Full width (960px), 56px top | Stitch-style bar: biomass, wave + countdown ring, ant counts, HP/satiety bars |
 | Macro | 880px (960 − 80px rail) | Side-view **tilemap** (32px tiles, scrollable): sky/surface, tunnels, towers, enemies |
 | Colony rail | 80px (always visible) | Satiety strip, G/B/S counts, vertical nursery queue icons |
 | Colony drawer | 365px (overlay, toggled) | Feed, queue editing, colony counts; **M** or tab to toggle |

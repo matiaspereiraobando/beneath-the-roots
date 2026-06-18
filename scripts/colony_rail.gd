@@ -3,6 +3,7 @@ extends PanelContainer
 signal expand_requested
 
 const AntType = preload("res://scripts/data/ant_types.gd").Type
+const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
 const RAIL_SLOT_SIZE := 24
 const RAIL_COUNT_ICON := 16
 
@@ -24,6 +25,7 @@ var _pulse_tween: Tween
 func _ready() -> void:
 	theme_type_variation = &"ColonyRail"
 	clip_contents = true
+	_apply_fonts()
 	_icon_textures = ColonyUiIcons.load_icon_map(RAIL_SLOT_SIZE)
 	_setup_count_icons()
 	_build_slot_buttons()
@@ -34,6 +36,13 @@ func _ready() -> void:
 	_on_satiety_changed(GameState.queen_satiety)
 	call_deferred("_refresh_slots")
 	call_deferred("_refresh_colony_counts")
+
+
+func _apply_fonts() -> void:
+	_expand_btn.custom_minimum_size.y = 24
+	HudThemeRes.apply_pixel_font(_expand_btn, HudThemeRes.FONT_STAT)
+	for lbl in [_gatherer_label, _builder_label, _soldier_label]:
+		HudThemeRes.apply_pixel_font(lbl, HudThemeRes.FONT_STAT)
 
 
 func set_expanded_tab(expanded: bool) -> void:

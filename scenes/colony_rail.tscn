@@ -22,9 +22,8 @@ theme_override_constants/separation = 3
 alignment = 1
 
 [node name="ExpandBtn" type="Button" parent="Margin/VBox"]
-custom_minimum_size = Vector2(0, 18)
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
 text = "«"
 tooltip_text = "Colony menu (M)"
 
@@ -54,8 +53,6 @@ size_flags_horizontal = 4
 
 [node name="CountLabel" type="Label" parent="Margin/VBox/Counts/GathererCol"]
 layout_mode = 2
-theme_override_constants/outline_size = 2
-theme_override_font_sizes/font_size = 11
 text = "0"
 horizontal_alignment = 1
 
@@ -71,8 +68,6 @@ size_flags_horizontal = 4
 
 [node name="CountLabel" type="Label" parent="Margin/VBox/Counts/BuilderCol"]
 layout_mode = 2
-theme_override_constants/outline_size = 2
-theme_override_font_sizes/font_size = 11
 text = "0"
 horizontal_alignment = 1
 
@@ -88,8 +83,6 @@ size_flags_horizontal = 4
 
 [node name="CountLabel" type="Label" parent="Margin/VBox/Counts/SoldierCol"]
 layout_mode = 2
-theme_override_constants/outline_size = 2
-theme_override_font_sizes/font_size = 11
 text = "0"
 horizontal_alignment = 1
 
