@@ -1,13 +1,13 @@
 extends Node
 ## Singleton gameplay state — single source of truth.
 
-enum Phase { BUILD, WAVE, WON, LOST }
+enum Phase { PLAYING, WON, LOST }
 
 signal biomass_changed(value: int)
 signal phase_changed(phase: Phase)
 signal queen_hp_changed(current: int, maximum: int)
 signal queen_satiety_changed(value: float)
-signal build_timer_changed(seconds: float)
+signal next_wave_timer_changed(seconds: float)
 signal level_loaded(level_id: String)
 signal enemy_spawned(enemy: Dictionary)
 signal enemy_killed(enemy: Dictionary)
@@ -42,9 +42,9 @@ var biomass: int = 50
 var queen_hp: int = 100
 var queen_max_hp: int = 100
 var queen_satiety: float = 100.0
-var phase: Phase = Phase.BUILD
-var wave_index: int = 0
-var build_timer: float = 40.0
+var phase: Phase = Phase.PLAYING
+var next_wave_index: int = 0
+var next_wave_timer: float = 40.0
 var current_level_id: String = "level1_breach"
 var free_soldiers: int = 0
 var gatherer_count: int = 0
@@ -66,7 +66,9 @@ var _next_mine_id: int = 1
 var _next_projectile_id: int = 1
 
 var _spawn_queue: Array = []
-var _wave_enemies_remaining: int = 0
+var _wave_enemy_alive: Dictionary = {}
+var _wave_spawns_scheduled: Dictionary = {}
+var _wave_bonus_awarded: Dictionary = {}
 
 
 func reset_for_level(level_id: String, starting_biomass: int = 50, max_hp: int = 100) -> void:
@@ -89,9 +91,9 @@ func reset_for_level(level_id: String, starting_biomass: int = 50, max_hp: int =
 	queen_spawn_timer = GameTuning.QUEEN_SPAWN_INTERVAL
 	queen_hp = queen_max_hp
 	queen_satiety = 100.0
-	phase = Phase.BUILD
-	wave_index = 0
-	build_timer = GameTuning.BUILD_PHASE_DURATION
+	phase = Phase.PLAYING
+	next_wave_index = 0
+	next_wave_timer = GameTuning.WAVE_INTERVAL
 	enemies.clear()
 	towers.clear()
 	mines.clear()
@@ -99,7 +101,9 @@ func reset_for_level(level_id: String, starting_biomass: int = 50, max_hp: int =
 	projectiles.clear()
 	combat_effects.clear()
 	_spawn_queue.clear()
-	_wave_enemies_remaining = 0
+	_wave_enemy_alive.clear()
+	_wave_spawns_scheduled.clear()
+	_wave_bonus_awarded.clear()
 	_next_enemy_id = 1
 	_next_tower_id = 1
 	_next_mine_id = 1
@@ -242,11 +246,55 @@ func set_phase(next: Phase) -> void:
 	phase_changed.emit(phase)
 
 
-func tick_build_timer(delta: float) -> void:
-	if phase != Phase.BUILD or build_timer <= 0.0:
+func is_playing() -> bool:
+	return phase == Phase.PLAYING
+
+
+func invasion_active() -> bool:
+	return not enemies.is_empty() or has_pending_spawns()
+
+
+func tick_next_wave_timer(delta: float) -> void:
+	if phase != Phase.PLAYING:
 		return
-	build_timer = maxf(0.0, build_timer - delta)
-	build_timer_changed.emit(build_timer)
+	var waves: Array = level_data.get("waves", [])
+	if next_wave_index >= waves.size():
+		return
+	if next_wave_timer <= 0.0:
+		schedule_next_wave()
+		return
+	next_wave_timer = maxf(0.0, next_wave_timer - delta)
+	next_wave_timer_changed.emit(next_wave_timer)
+	if next_wave_timer <= 0.0:
+		schedule_next_wave()
+
+
+func schedule_next_wave() -> void:
+	var waves: Array = level_data.get("waves", [])
+	if next_wave_index >= waves.size():
+		return
+	var wave_idx := next_wave_index
+	append_wave_spawns(wave_idx)
+	_wave_spawns_scheduled[wave_idx] = true
+	rearm_mines()
+	wave_started.emit(wave_idx)
+	next_wave_index += 1
+	next_wave_timer = GameTuning.WAVE_INTERVAL
+	next_wave_timer_changed.emit(next_wave_timer)
+	_check_all_waves_spawned_win()
+
+
+func _check_all_waves_spawned_win() -> void:
+	var waves: Array = level_data.get("waves", [])
+	if next_wave_index < waves.size():
+		return
+	if has_pending_spawns() or not enemies.is_empty():
+		return
+	set_phase(Phase.WON)
+
+
+func check_win_condition() -> void:
+	_check_all_waves_spawned_win()
 
 
 func add_biomass(amount: int) -> void:
@@ -415,7 +463,7 @@ func remove_soldier(tower: Dictionary) -> bool:
 	return true
 
 
-func spawn_enemy(type: String, path: PackedVector2Array) -> Dictionary:
+func spawn_enemy(type: String, path: PackedVector2Array, wave_idx: int = -1) -> Dictionary:
 	var stats: Dictionary = GameTuning.ENEMY_STATS.get(type, GameTuning.ENEMY_STATS.skitter)
 	var enemy := {
 		"id": next_enemy_id(),
@@ -425,13 +473,15 @@ func spawn_enemy(type: String, path: PackedVector2Array) -> Dictionary:
 		"speed": stats.speed,
 		"damage": stats.damage,
 		"reward": stats.reward,
+		"wave_idx": wave_idx,
 		"path": path,
 		"path_index": 0,
 		"path_progress": 0.0,
 		"position": path[0] if path.size() > 0 else Vector2.ZERO,
 	}
 	enemies.append(enemy)
-	_wave_enemies_remaining += 1
+	if wave_idx >= 0:
+		_wave_enemy_alive[wave_idx] = int(_wave_enemy_alive.get(wave_idx, 0)) + 1
 	enemy_spawned.emit(enemy)
 	return enemy
 
@@ -441,7 +491,7 @@ func kill_enemy(enemy: Dictionary) -> void:
 		return
 	enemies.erase(enemy)
 	add_biomass(enemy.reward)
-	_wave_enemies_remaining = maxi(0, _wave_enemies_remaining - 1)
+	_on_enemy_removed(enemy)
 	enemy_killed.emit(enemy)
 
 
@@ -450,40 +500,67 @@ func breach_enemy(enemy: Dictionary) -> void:
 		return
 	enemies.erase(enemy)
 	damage_queen(enemy.damage)
-	_wave_enemies_remaining = maxi(0, _wave_enemies_remaining - 1)
+	_on_enemy_removed(enemy)
 	enemy_reached_end.emit(enemy)
 
 
-func queue_wave_spawns() -> void:
-	_spawn_queue.clear()
-	_wave_enemies_remaining = 0
+func _on_enemy_removed(enemy: Dictionary) -> void:
+	var wave_idx: int = int(enemy.get("wave_idx", -1))
+	if wave_idx >= 0:
+		_wave_enemy_alive[wave_idx] = maxi(0, int(_wave_enemy_alive.get(wave_idx, 1)) - 1)
+		_try_award_wave_bonus(wave_idx)
+	_check_all_waves_spawned_win()
+
+
+func append_wave_spawns(wave_idx: int) -> void:
 	var waves: Array = level_data.get("waves", [])
-	if wave_index >= waves.size():
+	if wave_idx >= waves.size():
 		return
-	var wave: Dictionary = waves[wave_index]
+	var wave: Dictionary = waves[wave_idx]
 	var delay := 0.0
 	for group in wave.enemies:
 		delay += group.get("delay", 0.0)
 		for i in group.count:
-			_spawn_queue.append({"type": group.type, "timer": delay})
+			_spawn_queue.append({
+				"type": group.type,
+				"timer": delay,
+				"wave_idx": wave_idx,
+			})
 			delay += group.interval
 
 
-func start_wave() -> void:
-	var waves: Array = level_data.get("waves", [])
-	if wave_index >= waves.size():
-		set_phase(Phase.WON)
+func _try_award_wave_bonus(wave_idx: int) -> void:
+	if _wave_bonus_awarded.get(wave_idx, false):
 		return
-	set_phase(Phase.WAVE)
-	queue_wave_spawns()
-	wave_started.emit(wave_index)
+	if not _wave_spawns_scheduled.get(wave_idx, false):
+		return
+	if _has_pending_spawns_for_wave(wave_idx):
+		return
+	if int(_wave_enemy_alive.get(wave_idx, 0)) > 0:
+		return
+	var waves: Array = level_data.get("waves", [])
+	if wave_idx >= waves.size():
+		return
+	var bonus: int = waves[wave_idx].get("clearBonus", 0)
+	_wave_bonus_awarded[wave_idx] = true
+	if bonus > 0:
+		add_biomass(bonus)
+		wave_cleared.emit(bonus)
 
 
-func finish_wave() -> void:
-	var bonus := get_wave_clear_bonus()
-	add_biomass(bonus)
-	wave_cleared.emit(bonus)
-	advance_wave_or_win()
+func _has_pending_spawns_for_wave(wave_idx: int) -> bool:
+	for entry in _spawn_queue:
+		if int(entry.get("wave_idx", -1)) == wave_idx:
+			return true
+	return false
+
+
+func get_wave_count() -> int:
+	return level_data.get("waves", []).size()
+
+
+func get_active_wave_number() -> int:
+	return clampi(next_wave_index, 1, maxi(1, get_wave_count()))
 
 
 func add_projectile(proj: Dictionary) -> void:
@@ -527,35 +604,22 @@ func has_pending_spawns() -> bool:
 	return not _spawn_queue.is_empty()
 
 
-func pop_ready_spawn(delta: float) -> String:
+func pop_ready_spawn(delta: float) -> Dictionary:
 	if _spawn_queue.is_empty():
-		return ""
-	_spawn_queue[0].timer -= delta
-	if _spawn_queue[0].timer > 0.0:
-		return ""
-	var type: String = _spawn_queue[0].type
+		return {}
+	_spawn_queue[0].timer = float(_spawn_queue[0].timer) - delta
+	if float(_spawn_queue[0].timer) > 0.0:
+		return {}
+	var entry: Dictionary = _spawn_queue[0]
 	_spawn_queue.remove_at(0)
-	return type
+	return entry
 
 
-func get_wave_clear_bonus() -> int:
+func get_wave_clear_bonus(wave_idx: int) -> int:
 	var waves: Array = level_data.get("waves", [])
-	if wave_index >= waves.size():
+	if wave_idx >= waves.size():
 		return 0
-	return waves[wave_index].get("clearBonus", 0)
-
-
-func advance_wave_or_win() -> void:
-	var waves: Array = level_data.get("waves", [])
-	wave_index += 1
-	if wave_index >= waves.size():
-		set_phase(Phase.WON)
-		return
-	phase = Phase.BUILD
-	build_timer = GameTuning.BUILD_PHASE_DURATION
-	build_timer_changed.emit(build_timer)
-	rearm_mines()
-	phase_changed.emit(phase)
+	return waves[wave_idx].get("clearBonus", 0)
 
 
 func _emit_all() -> void:
@@ -563,7 +627,7 @@ func _emit_all() -> void:
 	queen_hp_changed.emit(queen_hp, queen_max_hp)
 	queen_satiety_changed.emit(queen_satiety)
 	phase_changed.emit(phase)
-	build_timer_changed.emit(build_timer)
+	next_wave_timer_changed.emit(next_wave_timer)
 	soldiers_changed.emit(free_soldiers)
 	colony_counts_changed.emit()
 	nursery_changed.emit()

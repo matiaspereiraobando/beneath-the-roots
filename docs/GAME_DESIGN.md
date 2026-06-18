@@ -35,11 +35,13 @@ Macro (strategy map) and colony panel show the **same colony** — macro for def
 
 ## Timing model
 
-**Soft phases with light simultaneous pressure (B + A):**
+**Continuous play with scheduled waves:**
 
-- **Build phase:** 40 seconds. Dig, build, manage nursery. Mines rearm.
-- **Wave phase:** Enemies spawn and path to queen. Queen satiety decays (4/sec). Player should feed every ~20–30s.
-- **Auto-feed:** When satiety < 50%, colony auto-feeds at 50% efficiency if biomass available.
+- **No build/wave lockout:** Dig, build, nursery, and colony management work at all times until win/lose.
+- **Wave schedule:** First wave begins after `WAVE_INTERVAL` (40s). Each time a wave **starts spawning**, the timer for the **next** wave resets immediately — you do not wait for the current wave to be cleared.
+- **Overlapping waves:** Enemies from multiple waves can be on the map at once; clear bonuses still apply per wave when that wave's spawns are done and all its bugs are dead.
+- **Invasion pressure:** Queen satiety decays while enemies are active (on map or still spawning). Auto-feed still applies under pressure.
+- **Auto-feed:** When satiety < 50% during an invasion, colony auto-feeds at 50% efficiency if biomass is available.
 
 ## Economy
 

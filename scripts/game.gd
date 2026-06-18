@@ -19,7 +19,7 @@ func _ready() -> void:
 	GameState.phase_changed.connect(func(_p): _refresh_hud())
 	GameState.queen_hp_changed.connect(func(_c, _m): _refresh_hud())
 	GameState.queen_satiety_changed.connect(_on_satiety_changed)
-	GameState.build_timer_changed.connect(func(_t): _refresh_phase_label())
+	GameState.next_wave_timer_changed.connect(func(_t): _refresh_phase_label())
 	GameState.soldiers_changed.connect(_refresh_soldiers)
 	_refresh_hud()
 	_refresh_soldiers(GameState.free_soldiers)
@@ -43,7 +43,10 @@ func _on_biomass_changed(value: int) -> void:
 
 func _refresh_hud() -> void:
 	_on_biomass_changed(GameState.biomass)
-	$Root/HUD/HudMargin/HudRow/WaveLabel.text = "Wave: %d" % (GameState.wave_index + 1)
+	$Root/HUD/HudMargin/HudRow/WaveLabel.text = "Wave: %d/%d" % [
+		GameState.get_active_wave_number(),
+		maxi(1, GameState.get_wave_count()),
+	]
 	_refresh_phase_label()
 	$Root/HUD/HudMargin/HudRow/QueenHpLabel.text = "Queen HP: %d/%d" % [GameState.queen_hp, GameState.queen_max_hp]
 	_on_satiety_changed(GameState.queen_satiety)
@@ -65,12 +68,21 @@ func _refresh_soldiers(count: int) -> void:
 
 func _refresh_phase_label() -> void:
 	match GameState.phase:
-		GameState.Phase.BUILD:
-			_phase_label.text = "BUILD %ds · Dig/Build tools" % int(ceilf(GameState.build_timer))
-			_phase_label.modulate = Color(0.784314, 0.721569, 0.627451, 1)
-		GameState.Phase.WAVE:
-			_phase_label.text = "INVASION"
-			_phase_label.modulate = Color(0.415686, 1, 0.290196, 1)
+		GameState.Phase.PLAYING:
+			var timer_text := int(ceilf(GameState.next_wave_timer))
+			if GameState.next_wave_index >= GameState.get_wave_count():
+				if GameState.invasion_active():
+					_phase_label.text = "INVASION · clear the hive"
+					_phase_label.modulate = Color(0.415686, 1, 0.290196, 1)
+				else:
+					_phase_label.text = "Between waves"
+					_phase_label.modulate = Color(0.784314, 0.721569, 0.627451, 1)
+			elif GameState.invasion_active():
+				_phase_label.text = "INVASION · next wave %ds" % timer_text
+				_phase_label.modulate = Color(0.415686, 1, 0.290196, 1)
+			else:
+				_phase_label.text = "Next wave %ds" % timer_text
+				_phase_label.modulate = Color(0.784314, 0.721569, 0.627451, 1)
 		GameState.Phase.WON:
 			_phase_label.text = "WON"
 			_phase_label.modulate = Color(0.784314, 0.721569, 0.627451, 1)

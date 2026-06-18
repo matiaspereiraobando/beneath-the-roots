@@ -1,7 +1,8 @@
 extends Node
 ## Combat tuning constants — source: docs/GAME_DESIGN.md
 
-const BUILD_PHASE_DURATION := 40.0
+const WAVE_INTERVAL := 40.0
+const BUILD_PHASE_DURATION := WAVE_INTERVAL
 const TILE_SIZE := 32
 const MICRO_TILE_SIZE := 32
 const MICRO_SPRITE_NATIVE_SIZE := 64

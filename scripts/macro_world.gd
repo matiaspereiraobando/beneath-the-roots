@@ -229,7 +229,7 @@ func _update_toolbar_visuals() -> void:
 
 
 func _update_tool_hint() -> void:
-	if GameState.phase != GameState.Phase.BUILD:
+	if not GameState.is_playing():
 		if _build_feedback and _feedback_timer <= 0.0:
 			_build_feedback.visible = false
 		return
@@ -299,7 +299,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_clear_structure_selection()
 			_hide_tower_menu()
 			return
-		if GameState.phase == GameState.Phase.BUILD:
+		if GameState.is_playing():
 			match event.keycode:
 				KEY_1:
 					_select_structure("spitter")
@@ -328,7 +328,7 @@ func handle_world_click(world_pos: Vector2) -> void:
 		_show_tower_menu(tower, world_pos)
 		return
 	_hide_tower_menu()
-	if GameState.phase != GameState.Phase.BUILD:
+	if not GameState.is_playing():
 		return
 	if _active_tool == MacroTool.DIG:
 		var dig_err := GameState.start_dig(cell)
@@ -488,7 +488,7 @@ func _refresh_dig_hints() -> void:
 		return
 	for child in _dig_hints.get_children():
 		child.queue_free()
-	if GameState.phase != GameState.Phase.BUILD or _active_tool != MacroTool.DIG:
+	if not GameState.is_playing() or _active_tool != MacroTool.DIG:
 		return
 	var cells: Array = GameState.level_data.get("cells", [])
 	for y in cells.size():
@@ -508,7 +508,7 @@ func _update_hover_preview() -> void:
 		return
 	for child in _preview_root.get_children():
 		child.queue_free()
-	if GameState.phase != GameState.Phase.BUILD:
+	if not GameState.is_playing():
 		return
 	var cell := _pathfinding.world_to_tile(get_global_mouse_position())
 	if _active_tool == MacroTool.DIG:
@@ -613,7 +613,7 @@ func _show_build_feedback(message: String) -> void:
 
 func _tick_build_feedback(delta: float) -> void:
 	if _feedback_timer <= 0.0:
-		if GameState.phase == GameState.Phase.BUILD:
+		if GameState.is_playing():
 			_update_tool_hint()
 		return
 	_feedback_timer -= delta
@@ -665,7 +665,7 @@ func _sync_gland_auras() -> void:
 	for id in _gland_aura_sprites.keys():
 		_gland_aura_sprites[id].queue_free()
 	_gland_aura_sprites.clear()
-	if GameState.phase != GameState.Phase.WAVE:
+	if not GameState.invasion_active():
 		return
 	for tower in GameState.towers:
 		if tower.type != "gland":
@@ -682,7 +682,7 @@ func _sync_gland_auras() -> void:
 
 
 func _update_gland_pulse(_delta: float) -> void:
-	if GameState.phase != GameState.Phase.WAVE:
+	if not GameState.invasion_active():
 		return
 	var pulse := 0.75 + 0.25 * sin(Time.get_ticks_msec() * 0.006)
 	for tower in GameState.towers:

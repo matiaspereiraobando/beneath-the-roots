@@ -92,9 +92,19 @@ static func cell_under_tower(cell: Vector2i) -> bool:
 	return false
 
 
+static func _action_blocked() -> String:
+	match GameState.phase:
+		GameState.Phase.WON:
+			return "Level complete."
+		GameState.Phase.LOST:
+			return "Colony lost."
+	return ""
+
+
 static func can_dig(cell: Vector2i) -> String:
-	if GameState.phase != GameState.Phase.BUILD:
-		return "Dig only during BUILD phase."
+	var blocked := _action_blocked()
+	if blocked != "":
+		return blocked
 	if not cell_in_bounds(cell, GameState.level_data):
 		return "Out of bounds."
 	if get_cell(GameState.level_data, cell) != MacroCell.ROCK:
@@ -112,8 +122,9 @@ static func can_dig(cell: Vector2i) -> String:
 
 
 static func can_place_tower(anchor: Vector2i, tower_type: String) -> String:
-	if GameState.phase != GameState.Phase.BUILD:
-		return "Structures can only be placed during BUILD phase."
+	var blocked := _action_blocked()
+	if blocked != "":
+		return blocked
 	if not GameTuning.TOWER_COSTS.has(tower_type):
 		return "Unknown structure type."
 	var size := footprint_for(tower_type)
@@ -135,8 +146,9 @@ static func can_place_tower(anchor: Vector2i, tower_type: String) -> String:
 
 
 static func can_place_mine(cell: Vector2i) -> String:
-	if GameState.phase != GameState.Phase.BUILD:
-		return "Mines can only be placed during BUILD phase."
+	var blocked := _action_blocked()
+	if blocked != "":
+		return blocked
 	if get_cell(GameState.level_data, cell) != MacroCell.TUNNEL:
 		return "Mines go on tunnel tiles."
 	if not GameState.get_mine_at(cell).is_empty():

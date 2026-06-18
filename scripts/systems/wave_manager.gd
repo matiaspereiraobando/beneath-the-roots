@@ -9,44 +9,28 @@ func setup(pf: GridPathfinding) -> void:
 
 
 func update(delta: float) -> void:
-	if GameState.phase == GameState.Phase.WON or GameState.phase == GameState.Phase.LOST:
+	if not GameState.is_playing():
 		return
-	if GameState.phase == GameState.Phase.BUILD:
-		_update_build(delta)
-		return
-	if GameState.phase == GameState.Phase.WAVE:
-		_update_wave(delta)
-
-
-func _update_build(delta: float) -> void:
-	GameState.tick_build_timer(delta)
-	if GameState.build_timer <= 0.0:
-		_start_wave()
-
-
-func _start_wave() -> void:
-	GameState.start_wave()
-
-
-func _update_wave(delta: float) -> void:
+	GameState.tick_next_wave_timer(delta)
 	_try_spawn(delta)
 	_move_enemies(delta)
-	_check_wave_complete()
+	GameState.check_win_condition()
 
 
 func _try_spawn(delta: float) -> void:
 	var spent: float = delta
 	while true:
-		var type: String = GameState.pop_ready_spawn(spent)
+		var entry: Dictionary = GameState.pop_ready_spawn(spent)
 		spent = 0.0
-		if type == "":
+		if entry.is_empty():
 			break
 		var spawn_data: Dictionary = GameState.level_data.spawnTile
 		var spawn := Vector2i(int(spawn_data.x), int(spawn_data.y))
 		var path := pathfinding.get_path_to_citadel(spawn)
 		if path.is_empty():
 			path = PackedVector2Array([pathfinding.tile_center(spawn)])
-		GameState.spawn_enemy(type, path)
+		var wave_idx: int = int(entry.get("wave_idx", -1))
+		GameState.spawn_enemy(str(entry.type), path, wave_idx)
 
 
 func _move_enemies(delta: float) -> void:
@@ -73,11 +57,3 @@ func _move_enemies(delta: float) -> void:
 			var cell := pathfinding.world_to_tile(pos)
 			if pathfinding.is_citadel(cell) or pos.distance_to(path[path.size() - 1]) < 6.0:
 				GameState.breach_enemy(enemy)
-
-
-func _check_wave_complete() -> void:
-	if GameState.has_pending_spawns():
-		return
-	if not GameState.enemies.is_empty():
-		return
-	GameState.finish_wave()

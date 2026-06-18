@@ -12,7 +12,7 @@ func setup(pf: GridPathfinding) -> void:
 
 
 func update(delta: float) -> void:
-	if GameState.phase != GameState.Phase.WAVE:
+	if not GameState.is_playing():
 		return
 	for tower in GameState.towers:
 		_update_tower(tower, delta)

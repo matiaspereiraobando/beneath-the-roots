@@ -9,25 +9,23 @@ var _gatherer_timer: float = 0.0
 func update(delta: float) -> void:
 	if GameState.level_data.is_empty():
 		return
-	if GameState.phase == GameState.Phase.WON or GameState.phase == GameState.Phase.LOST:
+	if not GameState.is_playing():
 		return
 	_tick_satiety(delta)
 	_tick_queen_spawn(delta)
 	_tick_gatherers(delta)
 	_tick_dig_jobs(delta)
-	if GameState.phase == GameState.Phase.WAVE:
+	if GameState.invasion_active():
 		GameState.try_auto_feed()
 
 
 func _tick_satiety(delta: float) -> void:
-	if GameState.phase != GameState.Phase.WAVE:
+	if not GameState.invasion_active():
 		return
 	GameState.set_satiety(GameState.queen_satiety - GameTuning.SATIETY_DECAY_RATE * delta)
 
 
 func _tick_queen_spawn(delta: float) -> void:
-	if GameState.phase != GameState.Phase.BUILD and GameState.phase != GameState.Phase.WAVE:
-		return
 	GameState.queen_spawn_timer -= delta
 	if GameState.queen_spawn_timer > 0.0:
 		return
