@@ -26,10 +26,8 @@ const BASIC_ATLAS: Dictionary = {
 	MacroCell.SKY: 0,
 	MacroCell.SURFACE: 1,
 	MacroCell.TUNNEL: 3,
-	MacroCell.BUILD: 4,
 	MacroCell.SPAWN: 5,
 	MacroCell.CITADEL: 6,
-	MacroCell.SOFT_EARTH: 7,
 }
 
 

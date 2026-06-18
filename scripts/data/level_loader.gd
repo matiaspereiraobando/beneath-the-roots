@@ -37,22 +37,6 @@ static func _build_grid(data: Dictionary) -> Dictionary:
 	for pair in data.get("tunnelTiles", []):
 		var c := Vector2i(pair[0], pair[1])
 		cells[c.y][c.x] = MacroCell.TUNNEL
-	for pair in data.get("softEarthTiles", []):
-		var c := Vector2i(pair[0], pair[1])
-		if cells[c.y][c.x] == MacroCell.ROCK:
-			cells[c.y][c.x] = MacroCell.SOFT_EARTH
-	for node in data.get("preDugNodes", []):
-		var c := Vector2i(node.x, node.y)
-		if cells[c.y][c.x] == MacroCell.TUNNEL:
-			push_warning("Pre-dug node overlaps path at (%d, %d)" % [c.x, c.y])
-		else:
-			cells[c.y][c.x] = MacroCell.BUILD
-	for slot in data.get("buildSlots", []):
-		var c := Vector2i(slot.x, slot.y)
-		if cells[c.y][c.x] == MacroCell.TUNNEL:
-			push_warning("Build slot overlaps path at (%d, %d)" % [c.x, c.y])
-		else:
-			cells[c.y][c.x] = MacroCell.BUILD
 	var rect: Dictionary = data.citadelRect
 	for dy in rect.h:
 		for dx in rect.w:

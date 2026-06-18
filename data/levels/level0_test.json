@@ -7,17 +7,9 @@
   "startingBiomass": 80,
   "startingSoldiers": 3,
   "queenMaxHp": 100,
-  "buildSlots": [
-    { "x": 13, "y": 10 },
-    { "x": 23, "y": 18 }
-  ],
-  "preDugNodes": [
-    { "x": 16, "y": 8 }
-  ],
-  "softEarthTiles": [
-    [11, 4],
-    [20, 13],
-    [28, 19]
+  "deposits": [
+    [12, 6],
+    [25, 15]
   ],
   "tunnelTiles": [
     [2, 2], [2, 3], [2, 4], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5],

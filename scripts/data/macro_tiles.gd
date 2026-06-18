@@ -1,3 +1,3 @@
 extends RefCounted
 
-enum Cell { SKY, SURFACE, ROCK, TUNNEL, BUILD, CITADEL, SPAWN, SOFT_EARTH }
+enum Cell { SKY, SURFACE, ROCK, TUNNEL, CITADEL, SPAWN }

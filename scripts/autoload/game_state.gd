@@ -25,6 +25,7 @@ signal ant_spawned(ant_type: int)
 
 const MacroCell = preload("res://scripts/data/macro_tiles.gd").Cell
 const AntType = preload("res://scripts/data/ant_types.gd").Type
+const PlacementRules = preload("res://scripts/systems/placement.gd")
 
 signal dig_started(cell: Vector2i)
 signal dig_completed(cell: Vector2i)
@@ -139,19 +140,6 @@ func dequeue_nursery_ant() -> int:
 	return EMPTY_SLOT
 
 
-func has_open_build_slot() -> bool:
-	var cells: Array = level_data.get("cells", [])
-	if cells.is_empty():
-		return false
-	for y in cells.size():
-		for x in cells[y].size():
-			if cells[y][x] != MacroCell.BUILD:
-				continue
-			if get_tower_at(Vector2i(x, y)).is_empty():
-				return true
-	return false
-
-
 func get_cell_at(cell: Vector2i) -> int:
 	var cells: Array = level_data.get("cells", [])
 	if cell.y < 0 or cell.y >= cells.size():
@@ -179,12 +167,9 @@ func is_digging_at(cell: Vector2i) -> bool:
 
 
 func start_dig(cell: Vector2i) -> String:
-	if phase != Phase.BUILD:
-		return "Dig only during BUILD phase."
-	if get_cell_at(cell) != MacroCell.SOFT_EARTH:
-		return "Click soft earth (brown tile) to dig."
-	if is_digging_at(cell):
-		return "Already digging here."
+	var err := PlacementRules.can_dig(cell)
+	if err != "":
+		return err
 	if builder_count < 1:
 		return "Need a builder ant in the colony."
 	var cost := GameTuning.DIG_COST
@@ -205,7 +190,7 @@ func start_dig(cell: Vector2i) -> String:
 
 
 func complete_dig(cell: Vector2i) -> void:
-	set_cell_at(cell, MacroCell.BUILD)
+	set_cell_at(cell, MacroCell.TUNNEL)
 	builder_count += 1
 	colony_counts_changed.emit()
 	dig_completed.emit(cell)
@@ -308,15 +293,8 @@ func next_projectile_id() -> int:
 	return id
 
 
-func get_build_slot_at(cell: Vector2i) -> bool:
-	return get_cell_at(cell) == MacroCell.BUILD
-
-
 func get_tower_at(cell: Vector2i) -> Dictionary:
-	for tower in towers:
-		if tower.tile_x == cell.x and tower.tile_y == cell.y:
-			return tower
-	return {}
+	return PlacementRules.tower_covering(cell)
 
 
 func get_mine_at(cell: Vector2i) -> Dictionary:
@@ -326,27 +304,25 @@ func get_mine_at(cell: Vector2i) -> Dictionary:
 	return {}
 
 
-func place_tower(cell: Vector2i, tower_type: String) -> String:
-	if phase != Phase.BUILD:
-		return "Structures can only be placed during BUILD phase."
+func place_tower(anchor: Vector2i, tower_type: String) -> String:
 	if tower_type == "mine":
-		return "Select a tunnel tile for mines (press 5)."
-	if not GameTuning.TOWER_COSTS.has(tower_type):
-		return "Unknown structure type."
-	if not get_build_slot_at(cell):
-		return "Click a build tile (green ring)."
-	if not get_tower_at(cell).is_empty():
-		return "A structure is already on this tile."
+		return "Select mine with key 5, then click a tunnel tile."
+	var err := PlacementRules.can_place_tower(anchor, tower_type)
+	if err != "":
+		return err
 	var cost: int = GameTuning.TOWER_COSTS.get(tower_type, GameTuning.SPITTER_COST)
 	if biomass < cost:
 		return "Need %d biomass (you have %d)." % [cost, biomass]
 	if not spend_biomass(cost):
 		return "Need %d biomass." % cost
+	var size := PlacementRules.footprint_for(tower_type)
 	var tower := {
 		"id": next_tower_id(),
 		"type": tower_type,
-		"tile_x": cell.x,
-		"tile_y": cell.y,
+		"tile_x": anchor.x,
+		"tile_y": anchor.y,
+		"width": size.x,
+		"height": size.y,
 		"soldiers": 0,
 	}
 	towers.append(tower)
@@ -354,17 +330,14 @@ func place_tower(cell: Vector2i, tower_type: String) -> String:
 	return ""
 
 
-func place_spitter(cell: Vector2i) -> String:
-	return place_tower(cell, "spitter")
+func place_spitter(anchor: Vector2i) -> String:
+	return place_tower(anchor, "spitter")
 
 
 func place_mine(cell: Vector2i) -> String:
-	if phase != Phase.BUILD:
-		return "Mines can only be placed during BUILD phase."
-	if get_cell_at(cell) != MacroCell.TUNNEL:
-		return "Mines go on tunnel tiles (press 5, then click path)."
-	if not get_mine_at(cell).is_empty():
-		return "A mine is already on this tile."
+	var err := PlacementRules.can_place_mine(cell)
+	if err != "":
+		return err
 	var cost := GameTuning.MINE_COST
 	if biomass < cost:
 		return "Need %d biomass (you have %d)." % [cost, biomass]
@@ -384,6 +357,29 @@ func place_mine(cell: Vector2i) -> String:
 func rearm_mines() -> void:
 	for mine in mines:
 		mine.armed = true
+
+
+func repath_enemies(pathfinding: GridPathfinding) -> void:
+	for enemy in enemies:
+		var cell := pathfinding.world_to_tile(enemy.position)
+		var new_path := pathfinding.get_path_to_citadel(cell)
+		if new_path.is_empty():
+			continue
+		var best_idx := 0
+		var best_dist: float = enemy.position.distance_squared_to(new_path[0])
+		for i in range(1, new_path.size()):
+			var d: float = enemy.position.distance_squared_to(new_path[i])
+			if d < best_dist:
+				best_dist = d
+				best_idx = i
+		enemy.path = new_path
+		enemy.path_index = best_idx
+		var progress := 0.0
+		for i in range(best_idx):
+			progress += new_path[i].distance_to(new_path[i + 1])
+		if best_idx < new_path.size():
+			progress += new_path[best_idx].distance_to(enemy.position)
+		enemy.path_progress = progress
 
 
 func trigger_mine(mine: Dictionary) -> void:

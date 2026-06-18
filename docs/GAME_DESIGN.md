@@ -56,7 +56,7 @@ Macro (strategy map) and colony panel show the **same colony** — macro for def
 | Type | Role |
 |------|------|
 | Gatherer | Auto-ticks deposits → biomass |
-| Builder | Dig soft-earth tiles (costs 1 builder + 15 biomass) |
+| Builder | Dig rock beside tunnels (1 builder + 15 biomass, 4s) → new tunnel tile |
 | Soldier | Assigned to towers for DPS/fire rate |
 
 **Nursery queue:** 5 slots on colony rail (clickable) and drawer. Click to cycle G/B/S. Queen spawns every 10s (faster when well-fed). Toggle drawer with **M** or the rail tab.
@@ -74,17 +74,19 @@ Macro (strategy map) and colony panel show the **same colony** — macro for def
 
 ## Structures (macro)
 
-| Structure | Cost | Behavior |
-|-----------|------|----------|
-| Acid Spitter | 40 | Single-target ranged acid |
-| Crusher sac | 50 | Short range AoE splash |
-| Needle gallery | 45 | Pierce through 3 enemies |
-| Pheromone gland | 35 | Aura: +25% dmg, +20% fire rate to nearby towers |
-| Fungal mine | 25 | Path trap, 40 dmg, 1 use/wave, rearms on build phase |
+Player uses **Dig** and **Build** tools on the macro map (toolbar + keys 1–6). Select a structure type, then click the map. Hover shows a green/red footprint preview.
 
-**Dig:** Soft-earth tiles → 4s dig → build node. Pre-dug nodes on level start.
+| Structure | Footprint | Placement | Cost | Behavior |
+|-----------|-----------|-----------|------|----------|
+| Acid Spitter | 2×2 | Rock, adjacent to tunnel | 40 | Single-target ranged acid |
+| Crusher sac | 2×2 | Rock, adjacent to tunnel | 50 | Short range AoE splash |
+| Needle gallery | 2×2 | Rock, adjacent to tunnel | 45 | Pierce through 3 enemies |
+| Pheromone gland | 2×2 | Rock, adjacent to tunnel | 35 | Aura: +25% dmg, +20% fire rate to nearby towers |
+| Fungal mine | 1×1 | Tunnel tile | 25 | Path trap, 40 dmg, 1 use/wave, rearms on build phase |
 
-**Tower soldiers:** 2 base slots, +1 per upgrade tier (max 4). +/- via tower click menu.
+**Dig:** Click rock 4-way adjacent to an existing tunnel → 4s dig → **tunnel** tile. Opens new routes; enemies **repath immediately** when dig completes (including during waves).
+
+**Tower soldiers:** 2 base slots, +1 per upgrade tier (max 4). +/- via tower click menu (any footprint tile).
 
 **Upgrades:** 2 tiers (30 / 60 biomass). +range, +damage, +slots.
 

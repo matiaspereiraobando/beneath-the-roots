@@ -66,11 +66,7 @@ func _refresh_soldiers(count: int) -> void:
 func _refresh_phase_label() -> void:
 	match GameState.phase:
 		GameState.Phase.BUILD:
-			var slots := "tile" if GameState.has_open_build_slot() else "no slot"
-			_phase_label.text = "BUILD %ds · %s · click tile" % [
-				int(ceilf(GameState.build_timer)),
-				slots,
-			]
+			_phase_label.text = "BUILD %ds · Dig/Build tools" % int(ceilf(GameState.build_timer))
 			_phase_label.modulate = Color(0.784314, 0.721569, 0.627451, 1)
 		GameState.Phase.WAVE:
 			_phase_label.text = "INVASION"

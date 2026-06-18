@@ -33,6 +33,7 @@ scripts/
     wave_manager.gd
     combat_system.gd
     colony_system.gd   # satiety, queen spawn, gatherers
+    placement.gd       # footprint rules, dig/build validation
     macro_terrain_painter.gd  # dirt autotile mask painting
   util/
     macro_tileset.gd         # macro TileSet from PNG atlases
@@ -101,7 +102,9 @@ Macro visuals: logic grid in `level_data.cells` → `MacroTerrainPainter` picks 
 
 - **Spawn:** top-left cave mouth (surface row)
 - **Citadel breach:** bottom-right 3×3 tiles
-- **Pathfinding:** `AStarGrid2D` on walkable tiles; `rebuild()` after dig completes (Sprint 03)
+- **Pathfinding:** `AStarGrid2D` on walkable tiles; `rebuild()` after dig completes; `GameState.repath_enemies()` updates live enemy routes
+- **Placement:** `PlacementRules` — 2×2 towers on rock beside tunnels, 1×1 mines on tunnels; dig expands tunnel network
+- **Macro tools:** Dig / Build toolbar in `macro_world.tscn`; structure keys 1–5, dig key 6; hover footprint preview
 - **Camera:** starts centered on spawn; `macro_pan_*` input actions (WASD) pan within bounds
 
 ## Rendering

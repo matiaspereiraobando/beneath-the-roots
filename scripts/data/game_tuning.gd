@@ -16,6 +16,14 @@ const MACRO_PAN_SPEED := 400.0
 const DIG_DURATION := 4.0
 const DIG_COST := 15
 
+const STRUCTURE_FOOTPRINTS := {
+	"spitter": Vector2i(2, 2),
+	"crusher": Vector2i(2, 2),
+	"needle": Vector2i(2, 2),
+	"gland": Vector2i(2, 2),
+	"mine": Vector2i(1, 1),
+}
+
 const TOWER_BASE_SLOTS := 2
 const SOLDIER_DPS_BONUS := 2.0
 const SOLDIER_FIRE_RATE_BONUS := 0.15

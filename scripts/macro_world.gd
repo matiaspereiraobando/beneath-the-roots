@@ -2,6 +2,7 @@ extends Node2D
 
 const MacroCell = preload("res://scripts/data/macro_tiles.gd").Cell
 const TowerSprites = preload("res://scripts/util/tower_sprites.gd")
+const PlacementRules = preload("res://scripts/systems/placement.gd")
 
 const BUILD_TYPES := ["spitter", "crusher", "needle", "gland"]
 const BUILD_LABELS := {
@@ -11,6 +12,8 @@ const BUILD_LABELS := {
 	"gland": "Gland",
 	"mine": "Fungal mine",
 }
+
+enum MacroTool { DIG, BUILD }
 
 @onready var camera: Camera2D = $Camera2D
 @onready var terrain: TileMapLayer = $Terrain
@@ -22,21 +25,22 @@ const BUILD_LABELS := {
 @onready var _add_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/AddBtn
 @onready var _remove_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/RemoveBtn
 @onready var _close_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/CloseBtn
-@onready var _build_picker: PanelContainer = $HudLayer/BuildPicker
-@onready var _build_picker_title: Label = $HudLayer/BuildPicker/VBox/Title
-@onready var _build_picker_options: VBoxContainer = $HudLayer/BuildPicker/VBox/Options
-@onready var _build_picker_close: Button = $HudLayer/BuildPicker/VBox/CloseBtn
+@onready var _dig_btn: Button = $HudLayer/ToolBar/DigBtn
+@onready var _build_btn: Button = $HudLayer/ToolBar/BuildBtn
+@onready var _structure_bar: HBoxContainer = $HudLayer/ToolBar/StructureBar
 
-var _build_hints: Node2D
 var _dig_hints: Node2D
+var _preview_root: Node2D
 var _dig_progress_root: Node2D
 var _mines_root: Node2D
 var _effects_root: Node2D
 var _build_feedback: Label
 var _feedback_timer: float = 0.0
-var _pending_build_cell := Vector2i(-1, -1)
-var _pending_mine := false
-var _picker_rows: Dictionary = {}
+var _active_tool: MacroTool = MacroTool.BUILD
+var _selected_structure: String = ""
+var _structure_buttons: Dictionary = {}
+var _preview_valid_tex: Texture2D
+var _preview_invalid_tex: Texture2D
 
 var _pathfinding := GridPathfinding.new()
 var _wave_manager := WaveManager.new()
@@ -61,11 +65,10 @@ func _ready() -> void:
 	terrain.tile_set = _macro_tileset.tile_set
 	camera.make_current()
 	_load_textures()
+	_make_preview_textures()
 	tower_menu.visible = false
-	_build_picker.visible = false
-	_setup_build_ui()
-	_setup_build_picker_rows()
-	_build_picker_close.pressed.connect(_hide_build_picker)
+	_setup_world_ui()
+	_setup_toolbar()
 	_wire_signals()
 	call_deferred("_bootstrap_level")
 
@@ -82,7 +85,7 @@ func _wire_signals() -> void:
 	GameState.enemy_killed.connect(_on_enemy_removed)
 	GameState.enemy_reached_end.connect(_on_enemy_removed)
 	GameState.tower_placed.connect(_on_tower_placed)
-	GameState.tower_placed.connect(func(_t): _refresh_build_hints())
+	GameState.tower_placed.connect(func(_t): _refresh_dig_hints())
 	GameState.mine_placed.connect(_on_mine_placed)
 	GameState.mine_triggered.connect(_on_mine_triggered)
 	GameState.dig_started.connect(func(_c): _refresh_dig_overlays())
@@ -96,6 +99,8 @@ func _wire_signals() -> void:
 	_add_btn.pressed.connect(_on_add_soldier)
 	_remove_btn.pressed.connect(_on_remove_soldier)
 	_close_btn.pressed.connect(_hide_tower_menu)
+	_dig_btn.pressed.connect(func(): _set_tool(MacroTool.DIG))
+	_build_btn.pressed.connect(func(): _set_tool(MacroTool.BUILD))
 
 
 func _load_textures() -> void:
@@ -112,14 +117,26 @@ func _load_tex(path: String) -> Texture2D:
 	return ImageTexture.create_from_image(image)
 
 
+func _make_preview_textures() -> void:
+	var size := GameTuning.TILE_SIZE
+	_preview_valid_tex = _make_cell_texture(size, Color(0.35, 0.95, 0.4, 0.45))
+	_preview_invalid_tex = _make_cell_texture(size, Color(0.95, 0.3, 0.3, 0.45))
+
+
+func _make_cell_texture(size: int, color: Color) -> Texture2D:
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	image.fill(color)
+	return ImageTexture.create_from_image(image)
+
+
 func _clear_children(node: Node) -> void:
 	for child in node.get_children():
 		child.queue_free()
 
 
 func _load_level() -> void:
-	_hide_build_picker()
 	_hide_tower_menu()
+	_selected_structure = ""
 	_enemy_sprites.clear()
 	_tower_sprites.clear()
 	_gland_aura_sprites.clear()
@@ -143,9 +160,11 @@ func _load_level() -> void:
 		_on_tower_placed(tower)
 	for mine in GameState.mines:
 		_on_mine_placed(mine)
-	_refresh_build_hints()
+	_refresh_dig_hints()
 	_refresh_dig_overlays()
 	_sync_gland_auras()
+	_update_toolbar_visuals()
+	_update_tool_hint()
 	_center_camera_on_spawn()
 
 
@@ -167,16 +186,68 @@ func _process(delta: float) -> void:
 	_update_gland_pulse(delta)
 	_sync_enemy_positions()
 	_sync_projectiles()
+	_update_hover_preview()
 
 
 func _on_phase_changed(phase: GameState.Phase) -> void:
-	_refresh_build_hints()
-	if phase != GameState.Phase.BUILD:
-		_hide_build_picker()
+	_refresh_dig_hints()
+	_update_toolbar_visuals()
+	_update_tool_hint()
 	_sync_gland_auras()
 	for tower in GameState.towers:
 		if _tower_sprites.has(tower.id):
 			_tower_sprites[tower.id].modulate = Color.WHITE
+
+
+func _set_tool(tool: MacroTool) -> void:
+	_active_tool = tool
+	_update_toolbar_visuals()
+	_update_tool_hint()
+	_refresh_dig_hints()
+
+
+func _select_structure(type: String) -> void:
+	_active_tool = MacroTool.BUILD
+	_selected_structure = type
+	_update_toolbar_visuals()
+	_update_tool_hint()
+
+
+func _clear_structure_selection() -> void:
+	_selected_structure = ""
+	_update_toolbar_visuals()
+	_update_tool_hint()
+
+
+func _update_toolbar_visuals() -> void:
+	_dig_btn.button_pressed = _active_tool == MacroTool.DIG
+	_build_btn.button_pressed = _active_tool == MacroTool.BUILD
+	_structure_bar.visible = _active_tool == MacroTool.BUILD
+	for type in _structure_buttons:
+		var btn: Button = _structure_buttons[type]
+		btn.button_pressed = _selected_structure == type
+
+
+func _update_tool_hint() -> void:
+	if GameState.phase != GameState.Phase.BUILD:
+		if _build_feedback and _feedback_timer <= 0.0:
+			_build_feedback.visible = false
+		return
+	var hint := ""
+	match _active_tool:
+		MacroTool.DIG:
+			hint = "Dig tool — click rock beside a tunnel (key 6)"
+		MacroTool.BUILD:
+			if _selected_structure == "":
+				hint = "Build tool — pick a structure (keys 1–5)"
+			elif _selected_structure == "mine":
+				hint = "Fungal mine — click a tunnel tile"
+			else:
+				var label: String = BUILD_LABELS.get(_selected_structure, _selected_structure)
+				hint = "%s — click valid 2×2 chamber beside path" % label
+	if hint != "" and _feedback_timer <= 0.0:
+		_build_feedback.text = hint
+		_build_feedback.visible = true
 
 
 func _update_camera_pan(delta: float) -> void:
@@ -223,12 +294,29 @@ func _world_to_screen(world_pos: Vector2) -> Vector2:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not event is InputEventMouseButton:
-		return
-	var mb := event as InputEventMouseButton
-	if not mb.pressed or mb.button_index != MOUSE_BUTTON_LEFT:
-		return
-	handle_world_click(get_global_mouse_position())
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_ESCAPE:
+			_clear_structure_selection()
+			_hide_tower_menu()
+			return
+		if GameState.phase == GameState.Phase.BUILD:
+			match event.keycode:
+				KEY_1:
+					_select_structure("spitter")
+				KEY_2:
+					_select_structure("crusher")
+				KEY_3:
+					_select_structure("needle")
+				KEY_4:
+					_select_structure("gland")
+				KEY_5:
+					_select_structure("mine")
+				KEY_6:
+					_set_tool(MacroTool.DIG)
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			handle_world_click(get_global_mouse_position())
 
 
 func handle_world_click(world_pos: Vector2) -> void:
@@ -237,96 +325,55 @@ func handle_world_click(world_pos: Vector2) -> void:
 	var cell := _pathfinding.world_to_tile(world_pos)
 	var tower := GameState.get_tower_at(cell)
 	if not tower.is_empty():
-		_hide_build_picker()
 		_show_tower_menu(tower, world_pos)
 		return
 	_hide_tower_menu()
 	if GameState.phase != GameState.Phase.BUILD:
-		_hide_build_picker()
 		return
-	if GameState.get_cell_at(cell) == MacroCell.SOFT_EARTH:
-		_hide_build_picker()
+	if _active_tool == MacroTool.DIG:
 		var dig_err := GameState.start_dig(cell)
 		if dig_err != "":
 			_show_build_feedback(dig_err)
 		else:
 			_show_build_feedback("Digging… builder busy for %ds." % int(GameTuning.DIG_DURATION))
 		return
-	if GameState.get_build_slot_at(cell) and GameState.get_tower_at(cell).is_empty():
-		_show_build_picker(world_pos, cell, false)
-		return
-	if GameState.get_cell_at(cell) == MacroCell.TUNNEL and GameState.get_mine_at(cell).is_empty():
-		_show_build_picker(world_pos, cell, true)
-		return
-	_hide_build_picker()
-
-
-func _setup_build_picker_rows() -> void:
-	for type in BUILD_TYPES + ["mine"]:
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
-		var icon := TextureRect.new()
-		icon.custom_minimum_size = Vector2(28, 28)
-		icon.texture = TowerSprites.make_tower_texture(type)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		var label := Label.new()
-		var cost: int = GameTuning.MINE_COST if type == "mine" else GameTuning.TOWER_COSTS.get(type, 0)
-		label.text = "%s  (%d biomass)" % [BUILD_LABELS.get(type, type), cost]
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var btn := Button.new()
-		btn.text = "Build"
-		btn.pressed.connect(_on_picker_build.bind(type))
-		row.add_child(icon)
-		row.add_child(label)
-		row.add_child(btn)
-		_build_picker_options.add_child(row)
-		_picker_rows[type] = row
-
-
-func _show_build_picker(world_pos: Vector2, cell: Vector2i, mine_only: bool) -> void:
-	_pending_build_cell = cell
-	_pending_mine = mine_only
-	_build_picker_title.text = "Place fungal mine" if mine_only else "Choose structure"
-	for type in _picker_rows:
-		_picker_rows[type].visible = (type == "mine") if mine_only else type != "mine"
-	_build_picker.visible = true
-	call_deferred("_position_build_picker", world_pos)
-
-
-func _position_build_picker(world_pos: Vector2) -> void:
-	var screen := _world_to_screen(world_pos)
-	var vp := get_viewport().get_visible_rect().size
-	var panel_size := _build_picker.get_combined_minimum_size()
-	if panel_size == Vector2.ZERO:
-		panel_size = Vector2(200, 180)
-	_build_picker.position = Vector2(
-		clampf(screen.x + 12.0, 8.0, vp.x - panel_size.x - 8.0),
-		clampf(screen.y - 24.0, 8.0, vp.y - panel_size.y - 8.0),
-	)
-
-
-func _hide_build_picker() -> void:
-	_build_picker.visible = false
-	_pending_build_cell = Vector2i(-1, -1)
-	_pending_mine = false
-
-
-func _on_picker_build(structure_type: String) -> void:
-	if _pending_build_cell.x < 0:
-		_hide_build_picker()
+	if _active_tool != MacroTool.BUILD or _selected_structure == "":
+		_show_build_feedback("Select Dig or Build tool, then a structure (1–5).")
 		return
 	var err := ""
-	if structure_type == "mine":
-		err = GameState.place_mine(_pending_build_cell)
+	if _selected_structure == "mine":
+		err = GameState.place_mine(cell)
 	else:
-		err = GameState.place_tower(_pending_build_cell, structure_type)
-	_hide_build_picker()
+		err = GameState.place_tower(cell, _selected_structure)
 	if err != "":
 		_show_build_feedback(err)
 	else:
-		var label: String = BUILD_LABELS.get(structure_type, structure_type)
-		_show_build_feedback("%s built!" % label)
+		var label: String = BUILD_LABELS.get(_selected_structure, _selected_structure)
+		_show_build_feedback("%s placed!" % label)
+
+
+func _setup_toolbar() -> void:
+	for type in BUILD_TYPES + ["mine"]:
+		var btn := Button.new()
+		btn.toggle_mode = true
+		btn.custom_minimum_size = Vector2(36, 36)
+		btn.icon = TowerSprites.make_tower_texture(type)
+		btn.expand_icon = true
+		btn.tooltip_text = "%s (key %d)" % [
+			BUILD_LABELS.get(type, type),
+			BUILD_TYPES.find(type) + 1 if type != "mine" else 5,
+		]
+		btn.pressed.connect(_on_structure_button.bind(type))
+		_structure_bar.add_child(btn)
+		_structure_buttons[type] = btn
+	_update_toolbar_visuals()
+
+
+func _on_structure_button(type: String) -> void:
+	if _selected_structure == type and _active_tool == MacroTool.BUILD:
+		_clear_structure_selection()
+	else:
+		_select_structure(type)
 
 
 func _show_tower_menu(tower: Dictionary, world_pos: Vector2) -> void:
@@ -402,11 +449,11 @@ func _on_enemy_removed(enemy: Dictionary) -> void:
 		_enemy_sprites.erase(enemy.id)
 
 
-func _setup_build_ui() -> void:
-	_build_hints = Node2D.new()
-	_build_hints.name = "BuildHints"
-	_build_hints.z_index = 5
-	add_child(_build_hints)
+func _setup_world_ui() -> void:
+	_preview_root = Node2D.new()
+	_preview_root.name = "HoverPreview"
+	_preview_root.z_index = 8
+	add_child(_preview_root)
 	_dig_hints = Node2D.new()
 	_dig_hints.name = "DigHints"
 	_dig_hints.z_index = 5
@@ -436,34 +483,62 @@ func _setup_build_ui() -> void:
 	_build_feedback.offset_bottom = 24.0
 
 
-func _refresh_build_hints() -> void:
-	if _build_hints == null:
+func _refresh_dig_hints() -> void:
+	if _dig_hints == null:
 		return
-	for child in _build_hints.get_children():
+	for child in _dig_hints.get_children():
 		child.queue_free()
-	if _dig_hints:
-		for child in _dig_hints.get_children():
-			child.queue_free()
-	if GameState.phase != GameState.Phase.BUILD:
+	if GameState.phase != GameState.Phase.BUILD or _active_tool != MacroTool.DIG:
 		return
 	var cells: Array = GameState.level_data.get("cells", [])
 	for y in cells.size():
 		for x in cells[y].size():
 			var cell := Vector2i(x, y)
-			var cell_type: int = cells[y][x]
-			var center := _pathfinding.tile_center(cell)
-			if cell_type == MacroCell.BUILD and GameState.get_tower_at(cell).is_empty():
-				var ring := _make_ring(Color(0.42, 1.0, 0.29, 0.9))
-				ring.position = center
-				_build_hints.add_child(ring)
-			elif cell_type == MacroCell.SOFT_EARTH and not GameState.is_digging_at(cell):
-				var earth := _make_ring(Color(0.72, 0.52, 0.32, 0.85))
-				earth.position = center
-				_dig_hints.add_child(earth)
+			if PlacementRules.can_dig(cell) != "":
+				continue
+			if GameState.is_digging_at(cell):
+				continue
+			var hint := _make_ring(Color(0.72, 0.52, 0.32, 0.55))
+			hint.position = _pathfinding.tile_center(cell)
+			_dig_hints.add_child(hint)
+
+
+func _update_hover_preview() -> void:
+	if _preview_root == null:
+		return
+	for child in _preview_root.get_children():
+		child.queue_free()
+	if GameState.phase != GameState.Phase.BUILD:
+		return
+	var cell := _pathfinding.world_to_tile(get_global_mouse_position())
+	if _active_tool == MacroTool.DIG:
+		var valid := PlacementRules.can_dig(cell) == ""
+		_add_preview_cell(cell, valid)
+		return
+	if _active_tool != MacroTool.BUILD or _selected_structure == "":
+		return
+	if _selected_structure == "mine":
+		var mine_valid := PlacementRules.can_place_mine(cell) == ""
+		_add_preview_cell(cell, mine_valid)
+		return
+	var size := PlacementRules.footprint_for(_selected_structure)
+	var err := PlacementRules.can_place_tower(cell, _selected_structure)
+	var tower_valid := err == ""
+	for foot_cell in PlacementRules.footprint_cells(cell, size):
+		_add_preview_cell(foot_cell, tower_valid)
+
+
+func _add_preview_cell(cell: Vector2i, valid: bool) -> void:
+	var sprite := Sprite2D.new()
+	sprite.texture = _preview_valid_tex if valid else _preview_invalid_tex
+	sprite.centered = true
+	sprite.position = _pathfinding.tile_center(cell)
+	_preview_root.add_child(sprite)
 
 
 func _refresh_dig_overlays() -> void:
 	_update_dig_progress_labels()
+	_refresh_dig_hints()
 
 
 func _update_dig_progress_labels() -> void:
@@ -496,12 +571,13 @@ func _update_dig_progress_labels() -> void:
 
 func _on_dig_completed(cell: Vector2i) -> void:
 	_pathfinding.rebuild(GameState.level_data)
+	GameState.repath_enemies(_pathfinding)
 	_terrain_painter.refresh_region(
 		terrain, GameState.level_data.cells, cell, 2, _macro_tileset
 	)
-	_refresh_build_hints()
+	_refresh_dig_hints()
 	_refresh_dig_overlays()
-	_show_build_feedback("Dig complete — click the tile to build.")
+	_show_build_feedback("Tunnel opened — enemies will reroute.")
 
 
 func _on_cell_changed(cell: Vector2i) -> void:
@@ -537,16 +613,37 @@ func _show_build_feedback(message: String) -> void:
 
 func _tick_build_feedback(delta: float) -> void:
 	if _feedback_timer <= 0.0:
+		if GameState.phase == GameState.Phase.BUILD:
+			_update_tool_hint()
 		return
 	_feedback_timer -= delta
-	if _feedback_timer <= 0.0 and _build_feedback:
-		_build_feedback.visible = false
+	if _feedback_timer <= 0.0:
+		_update_tool_hint()
+
+
+func _tower_sprite_position(tower: Dictionary) -> Vector2:
+	return PlacementRules.tower_world_center(tower, _pathfinding)
+
+
+func _tower_sprite_scale(tower: Dictionary) -> Vector2:
+	var tex: Texture2D = _textures.get(tower.type, _textures.spitter)
+	if tex == null:
+		return Vector2.ONE
+	var tex_size := tex.get_size()
+	if tex_size.x <= 0.0 or tex_size.y <= 0.0:
+		return Vector2.ONE
+	var footprint := Vector2(
+		float(tower.get("width", 2)) * GameTuning.TILE_SIZE,
+		float(tower.get("height", 2)) * GameTuning.TILE_SIZE,
+	)
+	return Vector2(footprint.x / tex_size.x, footprint.y / tex_size.y)
 
 
 func _on_tower_placed(tower: Dictionary) -> void:
 	var sprite := Sprite2D.new()
 	sprite.texture = _textures.get(tower.type, _textures.spitter)
-	sprite.position = _pathfinding.tile_center(Vector2i(tower.tile_x, tower.tile_y))
+	sprite.position = _tower_sprite_position(tower)
+	sprite.scale = _tower_sprite_scale(tower)
 	towers_root.add_child(sprite)
 	_tower_sprites[tower.id] = sprite
 	_sync_gland_auras()
@@ -573,7 +670,7 @@ func _sync_gland_auras() -> void:
 	for tower in GameState.towers:
 		if tower.type != "gland":
 			continue
-		var center := _pathfinding.tile_center(Vector2i(tower.tile_x, tower.tile_y))
+		var center := _tower_sprite_position(tower)
 		var aura := _make_ring(Color(0.68, 0.35, 0.82, 0.35))
 		var range_px: float = GameTuning.tower_stat("gland", "range", 180.0)
 		var scale := (range_px * 2.0) / float(GameTuning.TILE_SIZE)

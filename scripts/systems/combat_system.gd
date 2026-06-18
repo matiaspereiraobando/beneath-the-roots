@@ -1,6 +1,8 @@
 extends RefCounted
 class_name CombatSystem
 
+const PlacementRules = preload("res://scripts/systems/placement.gd")
+
 var pathfinding: GridPathfinding
 var _tower_cooldowns: Dictionary = {}
 
@@ -28,7 +30,7 @@ func _update_tower(tower: Dictionary, delta: float) -> void:
 	if cd > 0.0:
 		_tower_cooldowns[tid] = cd
 		return
-	var center := pathfinding.tile_center(Vector2i(tower.tile_x, tower.tile_y))
+	var center := PlacementRules.tower_world_center(tower, pathfinding)
 	var range_px: float = GameTuning.tower_stat(tower_type, "range", GameTuning.SPITTER_RANGE)
 	match tower_type:
 		"crusher":
@@ -164,11 +166,11 @@ func _tower_fire_rate(tower: Dictionary) -> float:
 func _aura_multipliers_for_tower(tower: Dictionary) -> Dictionary:
 	var damage_mult := 1.0
 	var fire_rate_mult := 1.0
-	var tower_center := pathfinding.tile_center(Vector2i(tower.tile_x, tower.tile_y))
+	var tower_center := PlacementRules.tower_world_center(tower, pathfinding)
 	for other in GameState.towers:
 		if other.type != "gland":
 			continue
-		var gland_center := pathfinding.tile_center(Vector2i(other.tile_x, other.tile_y))
+		var gland_center := PlacementRules.tower_world_center(other, pathfinding)
 		var gland_range: float = GameTuning.tower_stat("gland", "range", 180.0)
 		if tower_center.distance_to(gland_center) > gland_range:
 			continue
