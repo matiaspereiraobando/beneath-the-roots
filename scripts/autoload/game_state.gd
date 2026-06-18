@@ -88,7 +88,7 @@ func reset_for_level(level_id: String, starting_biomass: int = 50, max_hp: int =
 	nursery_queue.clear()
 	for i in NURSERY_SLOTS:
 		nursery_queue.append(EMPTY_SLOT)
-	queen_spawn_timer = GameTuning.QUEEN_SPAWN_INTERVAL
+	queen_spawn_timer = 0.0
 	queen_hp = queen_max_hp
 	queen_satiety = 100.0
 	phase = Phase.PLAYING
@@ -116,19 +116,59 @@ func reset_for_level(level_id: String, starting_biomass: int = 50, max_hp: int =
 
 
 func cycle_nursery_slot(index: int) -> void:
-	if index < 0 or index >= NURSERY_SLOTS:
+	if index <= 0 or index >= NURSERY_SLOTS:
 		return
-	var current: int = nursery_queue[index]
-	match current:
-		EMPTY_SLOT:
-			nursery_queue[index] = AntType.GATHERER
+	if nursery_queue[index] == EMPTY_SLOT:
+		return
+	match nursery_queue[index]:
 		AntType.GATHERER:
 			nursery_queue[index] = AntType.BUILDER
 		AntType.BUILDER:
 			nursery_queue[index] = AntType.SOLDIER
-		_:
-			nursery_queue[index] = EMPTY_SLOT
+		AntType.SOLDIER:
+			nursery_queue[index] = AntType.GATHERER
 	nursery_changed.emit()
+
+
+func nursery_filled_count() -> int:
+	var count := 0
+	for slot in nursery_queue:
+		if slot != EMPTY_SLOT:
+			count += 1
+	return count
+
+
+func can_enqueue_nursery() -> bool:
+	return nursery_filled_count() < NURSERY_SLOTS
+
+
+func enqueue_nursery_ant(ant_type: int) -> String:
+	if ant_type < AntType.GATHERER or ant_type > AntType.SOLDIER:
+		return "Invalid ant type."
+	if not can_enqueue_nursery():
+		return "Nursery queue is full."
+	var starting_gestation := nursery_filled_count() == 0
+	nursery_queue[nursery_filled_count()] = ant_type
+	if starting_gestation:
+		queen_spawn_timer = queen_spawn_interval()
+	nursery_changed.emit()
+	return ""
+
+
+func queen_spawn_interval() -> float:
+	var interval: float = GameTuning.QUEEN_SPAWN_INTERVAL
+	if queen_satiety >= GameTuning.WELL_FED_THRESHOLD:
+		interval *= GameTuning.WELL_FED_SPAWN_MULT
+	return interval
+
+
+func gestation_remaining_ratio() -> float:
+	if nursery_queue.is_empty() or nursery_queue[0] == EMPTY_SLOT:
+		return 0.0
+	var interval := queen_spawn_interval()
+	if interval <= 0.0:
+		return 0.0
+	return clampf(queen_spawn_timer / interval, 0.0, 1.0)
 
 
 func dequeue_nursery_ant() -> int:

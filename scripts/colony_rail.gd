@@ -3,46 +3,42 @@ extends PanelContainer
 signal expand_requested
 
 const AntType = preload("res://scripts/data/ant_types.gd").Type
+const EMPTY_SLOT = preload("res://scripts/data/ant_types.gd").EMPTY_SLOT
 const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
-const RAIL_SLOT_SIZE := 24
-const RAIL_COUNT_ICON := 16
+const GestationBarScript = preload("res://scripts/ui/gestation_bar.gd")
+const RAIL_SLOT_SIZE := 28
 
 @onready var _expand_btn: Button = $Margin/VBox/ExpandBtn
-@onready var _satiety_bar: ProgressBar = $Margin/VBox/SatietyBar
-@onready var _gatherer_label: Label = $Margin/VBox/Counts/GathererCol/CountLabel
-@onready var _builder_label: Label = $Margin/VBox/Counts/BuilderCol/CountLabel
-@onready var _soldier_label: Label = $Margin/VBox/Counts/SoldierCol/CountLabel
-@onready var _gatherer_icon: TextureRect = $Margin/VBox/Counts/GathererCol/Icon
-@onready var _builder_icon: TextureRect = $Margin/VBox/Counts/BuilderCol/Icon
-@onready var _soldier_icon: TextureRect = $Margin/VBox/Counts/SoldierCol/Icon
 @onready var _slot_col: VBoxContainer = $Margin/VBox/SlotCol
+@onready var _add_btn: Button = $Margin/VBox/AddBtn
 
 var _icon_textures: Dictionary = {}
 var _slot_buttons: Array[TextureButton] = []
+var _gestation_bars: Array[Control] = []
+var _type_menu: PopupMenu
 var _pulse_tween: Tween
 
 
 func _ready() -> void:
-	theme_type_variation = &"ColonyRail"
 	clip_contents = true
-	_apply_fonts()
+	_apply_styles()
 	_icon_textures = ColonyUiIcons.load_icon_map(RAIL_SLOT_SIZE)
-	_setup_count_icons()
-	_build_slot_buttons()
+	_build_slot_rows()
+	_setup_add_menu()
 	_expand_btn.pressed.connect(func() -> void: expand_requested.emit())
-	GameState.queen_satiety_changed.connect(_on_satiety_changed)
+	_add_btn.pressed.connect(_on_add_pressed)
 	GameState.nursery_changed.connect(_refresh_slots)
-	GameState.colony_counts_changed.connect(_refresh_colony_counts)
-	_on_satiety_changed(GameState.queen_satiety)
 	call_deferred("_refresh_slots")
-	call_deferred("_refresh_colony_counts")
 
 
-func _apply_fonts() -> void:
-	_expand_btn.custom_minimum_size.y = 24
-	HudThemeRes.apply_pixel_font(_expand_btn, HudThemeRes.FONT_STAT)
-	for lbl in [_gatherer_label, _builder_label, _soldier_label]:
-		HudThemeRes.apply_pixel_font(lbl, HudThemeRes.FONT_STAT)
+func _apply_styles() -> void:
+	HudThemeRes.apply_pixel_font(_expand_btn, HudThemeRes.FONT_CAPTION)
+	HudThemeRes.apply_pixel_font(_add_btn, HudThemeRes.FONT_CAPTION)
+	_add_btn.add_theme_color_override("font_color", HudThemeRes.SECONDARY)
+	_expand_btn.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE_VARIANT)
+	_add_btn.add_theme_stylebox_override("normal", HudThemeRes.ant_strip())
+	_add_btn.add_theme_stylebox_override("hover", HudThemeRes.wave_pill())
+	_add_btn.add_theme_stylebox_override("pressed", HudThemeRes.ant_strip())
 
 
 func set_expanded_tab(expanded: bool) -> void:
@@ -59,26 +55,58 @@ func pulse_breach() -> void:
 	_pulse_tween.tween_property(self, "modulate", Color.WHITE, 0.12)
 
 
-func _setup_count_icons() -> void:
-	var brighten := GameTuning.UI_ICON_BRIGHTEN
-	var icon_size := GameTuning.UI_ICON_NATIVE_SIZE
-	_gatherer_icon.texture = PixelArt.load_texture(SpritePaths.ui_icon("icon_gatherer"), icon_size, brighten)
-	_builder_icon.texture = PixelArt.load_texture(SpritePaths.ui_icon("icon_builder"), icon_size, brighten)
-	_soldier_icon.texture = PixelArt.load_texture(SpritePaths.ui_icon("icon_soldier"), icon_size, brighten)
-	for icon in [_gatherer_icon, _builder_icon, _soldier_icon]:
-		icon.custom_minimum_size = Vector2(RAIL_COUNT_ICON, RAIL_COUNT_ICON)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-
-
-func _build_slot_buttons() -> void:
+func _build_slot_rows() -> void:
+	var well_size := RAIL_SLOT_SIZE + 4
 	for i in GameState.NURSERY_SLOTS:
+		var well := PanelContainer.new()
+		well.add_theme_stylebox_override("panel", HudThemeRes.icon_well())
+		well.custom_minimum_size = Vector2(well_size, well_size)
+		var center := CenterContainer.new()
+		center.custom_minimum_size = well.custom_minimum_size
 		var btn := TextureButton.new()
 		btn.custom_minimum_size = Vector2(RAIL_SLOT_SIZE, RAIL_SLOT_SIZE)
 		btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 		btn.pressed.connect(_on_slot_pressed.bind(i))
-		_slot_col.add_child(btn)
+		center.add_child(btn)
+		well.add_child(center)
 		_slot_buttons.append(btn)
+		if i == 0:
+			var col := VBoxContainer.new()
+			col.alignment = BoxContainer.ALIGNMENT_CENTER
+			col.add_theme_constant_override("separation", 2)
+			var gest_bar: Control = GestationBarScript.new()
+			gest_bar.custom_minimum_size = Vector2(well_size, 3)
+			col.add_child(gest_bar)
+			_gestation_bars.append(gest_bar)
+			col.add_child(well)
+			_slot_col.add_child(col)
+		else:
+			var row := HBoxContainer.new()
+			row.alignment = BoxContainer.ALIGNMENT_CENTER
+			row.add_child(well)
+			_slot_col.add_child(row)
+
+
+func _setup_add_menu() -> void:
+	_type_menu = PopupMenu.new()
+	_type_menu.add_item("Gatherer", AntType.GATHERER)
+	_type_menu.add_item("Builder", AntType.BUILDER)
+	_type_menu.add_item("Soldier", AntType.SOLDIER)
+	_type_menu.id_pressed.connect(_on_type_selected)
+	add_child(_type_menu)
+
+
+func _on_add_pressed() -> void:
+	if not GameState.can_enqueue_nursery():
+		return
+	var pos := _add_btn.get_global_rect().position
+	pos.y += _add_btn.size.y
+	_type_menu.position = Vector2i(int(pos.x), int(pos.y))
+	_type_menu.popup()
+
+
+func _on_type_selected(id: int) -> void:
+	GameState.enqueue_nursery_ant(id)
 
 
 func _on_slot_pressed(index: int) -> void:
@@ -87,14 +115,7 @@ func _on_slot_pressed(index: int) -> void:
 
 func _refresh_slots() -> void:
 	ColonyUiIcons.refresh_slot_buttons(_slot_buttons, _icon_textures)
-
-
-func _refresh_colony_counts() -> void:
-	_gatherer_label.text = str(GameState.gatherer_count)
-	_builder_label.text = str(GameState.builder_count)
-	_soldier_label.text = str(GameState.free_soldiers)
-
-
-func _on_satiety_changed(value: float) -> void:
-	_satiety_bar.value = value
-	_satiety_bar.modulate = ColonyUiIcons.satiety_color(value)
+	_add_btn.disabled = not GameState.can_enqueue_nursery()
+	_add_btn.modulate = Color.WHITE if GameState.can_enqueue_nursery() else Color(0.5, 0.5, 0.5, 0.8)
+	if _gestation_bars.size() > 0:
+		_gestation_bars[0].visible = GameState.nursery_queue[0] != EMPTY_SLOT

@@ -4,7 +4,7 @@
 
 [node name="ColonyDrawer" type="PanelContainer"]
 custom_minimum_size = Vector2(365, 0)
-theme_type_variation = &"ColonyDrawer"
+theme_type_variation = &"GameHud"
 script = ExtResource("1_drawer")
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -39,24 +39,15 @@ layout_mode = 2
 text = "»"
 tooltip_text = "Minimize (M)"
 
-[node name="SatietyLabel" type="Label" parent="Margin/Scroll/VBox"]
-layout_mode = 2
-text = "Satiety: 100%"
-horizontal_alignment = 1
-
-[node name="FeedBtn" type="Button" parent="Margin/Scroll/VBox"]
-layout_mode = 2
-text = "Feed (15)"
-
-[node name="ColonyLabel" type="Label" parent="Margin/Scroll/VBox"]
-layout_mode = 2
-text = "G:0  B:0  S:0"
-horizontal_alignment = 1
-
 [node name="SlotCol" type="VBoxContainer" parent="Margin/Scroll/VBox"]
 layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 4
+
+[node name="AddBtn" type="Button" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+text = "+ Add to queue"
+tooltip_text = "Queue the next ant type"
 
 [node name="FutureActions" type="VBoxContainer" parent="Margin/Scroll/VBox"]
 layout_mode = 2

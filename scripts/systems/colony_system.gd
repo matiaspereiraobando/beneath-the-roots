@@ -26,12 +26,12 @@ func _tick_satiety(delta: float) -> void:
 
 
 func _tick_queen_spawn(delta: float) -> void:
+	if GameState.nursery_queue.is_empty() or GameState.nursery_queue[0] == EMPTY_SLOT:
+		return
 	GameState.queen_spawn_timer -= delta
 	if GameState.queen_spawn_timer > 0.0:
 		return
-	var interval := GameTuning.QUEEN_SPAWN_INTERVAL
-	if GameState.queen_satiety >= GameTuning.WELL_FED_THRESHOLD:
-		interval *= GameTuning.WELL_FED_SPAWN_MULT
+	var interval := GameState.queen_spawn_interval()
 	GameState.queen_spawn_timer = interval
 	var ant_type: int = GameState.dequeue_nursery_ant()
 	if ant_type == EMPTY_SLOT:

@@ -29,8 +29,22 @@ static func refresh_slot_buttons(buttons: Array, icon_map: Dictionary) -> void:
 		return
 	for i in buttons.size():
 		var slot_type: int = GameState.nursery_queue[i]
+		var btn: TextureButton = buttons[i]
 		var tex: Texture2D = icon_map.get(slot_type, icon_map[EMPTY_SLOT])
-		buttons[i].texture_normal = tex
+		btn.texture_normal = tex
+		if i == 0:
+			btn.disabled = true
+		else:
+			btn.disabled = slot_type == EMPTY_SLOT
+		if slot_type == EMPTY_SLOT:
+			btn.modulate = Color(0.55, 0.55, 0.58, 0.75)
+			btn.tooltip_text = "Empty queue slot"
+		elif i == 0:
+			btn.modulate = Color(0.92, 0.92, 0.95)
+			btn.tooltip_text = "Gestating — type locked"
+		else:
+			btn.modulate = Color.WHITE
+			btn.tooltip_text = "Click to change ant type"
 
 
 static func satiety_color(value: float) -> Color:
