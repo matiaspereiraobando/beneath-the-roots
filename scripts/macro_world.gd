@@ -56,11 +56,13 @@ var _selected_tower: Dictionary = {}
 var _textures: Dictionary = {}
 var _macro_tileset
 var _terrain_painter
+var _terrain_depth_shader: Shader
 
 
 func _ready() -> void:
 	_macro_tileset = load("res://scripts/util/macro_tileset.gd").new()
 	_terrain_painter = load("res://scripts/systems/macro_terrain_painter.gd").new()
+	_terrain_depth_shader = load("res://shaders/macro_terrain_depth.gdshader")
 	_colony = load("res://scripts/systems/colony_system.gd").new()
 	terrain.tile_set = _macro_tileset.tile_set
 	camera.make_current()
@@ -153,6 +155,7 @@ func _load_level() -> void:
 	_macro_tileset = load("res://scripts/util/macro_tileset.gd").new()
 	terrain.tile_set = _macro_tileset.tile_set
 	_paint_level(GameState.level_data)
+	_apply_terrain_depth_shader(GameState.level_data)
 	_pathfinding.setup_from_level(GameState.level_data)
 	_wave_manager.setup(_pathfinding)
 	_combat.setup(_pathfinding)
@@ -170,6 +173,36 @@ func _load_level() -> void:
 
 func _paint_level(level: Dictionary) -> void:
 	_terrain_painter.paint_all(terrain, level.cells, _macro_tileset)
+
+
+func _apply_terrain_depth_shader(level: Dictionary) -> void:
+	if _terrain_depth_shader == null:
+		terrain.material = null
+		return
+	var cells: Array = level.get("cells", [])
+	if cells.is_empty():
+		terrain.material = null
+		return
+	var rows: int = level.gridSize.rows
+	var tile := GameTuning.TILE_SIZE
+	var surface_row := _find_surface_row(cells)
+	var depth_rows := maxi(1, rows - surface_row - 1)
+	var mat := ShaderMaterial.new()
+	mat.shader = _terrain_depth_shader
+	mat.set_shader_parameter("surface_y", float(surface_row * tile))
+	mat.set_shader_parameter("depth_range", float(depth_rows * tile))
+	mat.set_shader_parameter("min_brightness", GameTuning.MACRO_DEPTH_MIN_BRIGHTNESS)
+	mat.set_shader_parameter("cool_tint", GameTuning.MACRO_DEPTH_COOL_TINT)
+	terrain.material = mat
+
+
+func _find_surface_row(cells: Array) -> int:
+	for y in cells.size():
+		var row: Array = cells[y]
+		for x in row.size():
+			if row[x] == MacroCell.SURFACE:
+				return y
+	return 0
 
 
 func _process(delta: float) -> void:
