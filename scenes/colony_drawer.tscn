@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://btr_colony_drawer"]
+[gd_scene load_steps=3 format=3 uid="uid://btr_colony_drawer"]
 
 [ext_resource type="Script" path="res://scripts/colony_drawer.gd" id="1_drawer"]
+[ext_resource type="Script" path="res://scripts/ui/citadel_grid.gd" id="2_grid"]
 
 [node name="ColonyDrawer" type="PanelContainer"]
 custom_minimum_size = Vector2(365, 0)
@@ -14,48 +15,20 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 8
 
-[node name="Scroll" type="ScrollContainer" parent="Margin"]
+[node name="VBox" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
 size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="VBox" type="VBoxContainer" parent="Margin/Scroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 6
-
-[node name="HeaderRow" type="HBoxContainer" parent="Margin/Scroll/VBox"]
-layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="Margin/Scroll/VBox/HeaderRow"]
+[node name="Title" type="Label" parent="Margin/VBox"]
 layout_mode = 2
-size_flags_horizontal = 3
-text = "NURSERY"
+text = "CITADEL"
 horizontal_alignment = 1
 
-[node name="CollapseBtn" type="Button" parent="Margin/Scroll/VBox/HeaderRow"]
+[node name="GridWrap" type="CenterContainer" parent="Margin/VBox"]
 layout_mode = 2
-text = "»"
-tooltip_text = "Minimize (M)"
+size_flags_vertical = 3
 
-[node name="SlotCol" type="VBoxContainer" parent="Margin/Scroll/VBox"]
+[node name="CitadelGrid" type="Control" parent="Margin/VBox/GridWrap"]
 layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 4
-
-[node name="AddBtn" type="Button" parent="Margin/Scroll/VBox"]
-layout_mode = 2
-text = "+ Add to queue"
-tooltip_text = "Queue the next ant type"
-
-[node name="FutureActions" type="VBoxContainer" parent="Margin/Scroll/VBox"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="Placeholder" type="Label" parent="Margin/Scroll/VBox/FutureActions"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.5, 0.45, 1)
-text = "Colony actions — coming soon"
-horizontal_alignment = 1
-autowrap_mode = 2
+script = ExtResource("2_grid")

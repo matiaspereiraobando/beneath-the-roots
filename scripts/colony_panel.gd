@@ -19,7 +19,6 @@ func _ready() -> void:
 	_rail.z_index = 2
 	_drawer.z_index = 1
 	_rail.expand_requested.connect(toggle)
-	_drawer.collapse_requested.connect(collapse)
 	GameState.citadel_breached.connect(_on_breach)
 	call_deferred("_apply_layout", true)
 
