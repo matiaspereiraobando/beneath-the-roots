@@ -2,6 +2,10 @@ extends Node
 ## Applies game theme + runtime pixel font (avoids requiring pre-imported .fontdata in repo).
 
 func _ready() -> void:
+	get_tree().root.theme = build_runtime_theme()
+
+
+static func build_runtime_theme() -> Theme:
 	var theme: Theme = load("res://assets/theme/game_theme.tres").duplicate()
 	var font := FontFile.new()
 	font.antialiasing = TextServer.FONT_ANTIALIASING_NONE
@@ -14,4 +18,6 @@ func _ready() -> void:
 	const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
 	theme.set_font_size("font_size", "TooltipLabel", HudThemeRes.FONT_CAPTION)
 	theme.set_constant("outline_size", "TooltipLabel", HudThemeRes.OUTLINE_CAPTION)
-	get_tree().root.theme = theme
+	theme.set_color("font_color", "TooltipLabel", HudThemeRes.ON_SURFACE)
+	theme.set_color("font_outline_color", "TooltipLabel", Color.BLACK)
+	return theme

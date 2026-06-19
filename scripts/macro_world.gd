@@ -6,6 +6,7 @@ const PlacementRules = preload("res://scripts/systems/placement.gd")
 const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
 const SpritePaths = preload("res://scripts/util/sprite_paths.gd")
 const ActionToolButton = preload("res://scripts/ui/action_tool_button.gd")
+const ThemeSetupScript = preload("res://scripts/autoload/theme_setup.gd")
 
 const BUILD_TYPES := ["spitter", "crusher", "needle", "gland"]
 const BUILD_LABELS := {
@@ -74,12 +75,35 @@ func _ready() -> void:
 	_load_textures()
 	_make_preview_textures()
 	tower_menu.visible = false
+	_apply_hud_theme()
 	_setup_world_ui()
 	_setup_toolbar()
 	_wire_signals()
 	get_viewport().size_changed.connect(_sync_toolbar_layout)
 	call_deferred("_sync_toolbar_layout")
 	call_deferred("_bootstrap_level")
+
+
+func _apply_hud_theme() -> void:
+	var theme := _resolve_game_theme()
+	if not theme:
+		return
+	for node in [_toolbar_panel, tower_menu]:
+		node.theme = theme
+
+
+func _resolve_game_theme() -> Theme:
+	var vp := get_viewport()
+	if vp is SubViewport:
+		var host: Node = vp.get_parent()
+		if host:
+			var main_theme: Theme = host.get_tree().root.theme
+			if main_theme:
+				return main_theme
+	var local_theme: Theme = get_tree().root.theme
+	if local_theme:
+		return local_theme
+	return ThemeSetupScript.build_runtime_theme()
 
 
 func _bootstrap_level() -> void:
@@ -619,6 +643,9 @@ func _setup_world_ui() -> void:
 	_build_feedback.name = "BuildFeedback"
 	_build_feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_build_feedback.visible = false
+	var hud_theme := _resolve_game_theme()
+	if hud_theme:
+		_build_feedback.theme = hud_theme
 	$HudLayer.add_child(_build_feedback)
 	_build_feedback.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	_build_feedback.offset_top = 4.0
