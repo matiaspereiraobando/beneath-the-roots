@@ -31,22 +31,31 @@ theme_type_variation = &"GameHud"
 
 [node name="ToolBar" type="HBoxContainer" parent="HudLayer/ToolBarPanel"]
 layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="ActionsBar" type="HBoxContainer" parent="HudLayer/ToolBarPanel/ToolBar"]
+layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="DigBtn" type="TextureButton" parent="HudLayer/ToolBarPanel/ToolBar"]
+[node name="DigBtn" type="TextureButton" parent="HudLayer/ToolBarPanel/ToolBar/ActionsBar"]
 custom_minimum_size = Vector2(56, 56)
 layout_mode = 2
 toggle_mode = true
 script = ExtResource("2_action_btn")
 
-[node name="BuildBtn" type="TextureButton" parent="HudLayer/ToolBarPanel/ToolBar"]
+[node name="BuildBtn" type="TextureButton" parent="HudLayer/ToolBarPanel/ToolBar/ActionsBar"]
 custom_minimum_size = Vector2(56, 56)
 layout_mode = 2
 toggle_mode = true
-button_pressed = true
 script = ExtResource("2_action_btn")
+
+[node name="StructureGap" type="Control" parent="HudLayer/ToolBarPanel/ToolBar"]
+visible = false
+custom_minimum_size = Vector2(16, 0)
+layout_mode = 2
 
 [node name="StructureBar" type="HBoxContainer" parent="HudLayer/ToolBarPanel/ToolBar"]
+visible = false
 layout_mode = 2
 theme_override_constants/separation = 4
 

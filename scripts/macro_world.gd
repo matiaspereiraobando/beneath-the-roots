@@ -16,6 +16,8 @@ const BUILD_LABELS := {
 	"gland": "Gland",
 	"mine": "Fungal mine",
 }
+const TOOLBAR_EDGE_MARGIN := 8
+const TOOLBAR_SECTION_GAP := 16
 
 enum MacroTool { NONE, DIG, BUILD }
 
@@ -29,8 +31,9 @@ enum MacroTool { NONE, DIG, BUILD }
 @onready var _add_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/AddBtn
 @onready var _remove_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/RemoveBtn
 @onready var _close_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/CloseBtn
-@onready var _dig_btn: ActionToolButton = $HudLayer/ToolBarPanel/ToolBar/DigBtn
-@onready var _build_btn: ActionToolButton = $HudLayer/ToolBarPanel/ToolBar/BuildBtn
+@onready var _dig_btn: ActionToolButton = $HudLayer/ToolBarPanel/ToolBar/ActionsBar/DigBtn
+@onready var _build_btn: ActionToolButton = $HudLayer/ToolBarPanel/ToolBar/ActionsBar/BuildBtn
+@onready var _structure_gap: Control = $HudLayer/ToolBarPanel/ToolBar/StructureGap
 @onready var _structure_bar: HBoxContainer = $HudLayer/ToolBarPanel/ToolBar/StructureBar
 @onready var _toolbar_panel: PanelContainer = $HudLayer/ToolBarPanel
 
@@ -41,7 +44,7 @@ var _mines_root: Node2D
 var _effects_root: Node2D
 var _build_feedback: Label
 var _feedback_timer: float = 0.0
-var _active_tool: MacroTool = MacroTool.BUILD
+var _active_tool: MacroTool = MacroTool.NONE
 var _selected_structure: String = ""
 var _structure_buttons: Dictionary = {}
 var _preview_valid_tex: Texture2D
@@ -169,6 +172,7 @@ func _clear_children(node: Node) -> void:
 
 func _load_level() -> void:
 	_hide_tower_menu()
+	_active_tool = MacroTool.NONE
 	_selected_structure = ""
 	_enemy_sprites.clear()
 	_tower_sprites.clear()
@@ -348,7 +352,9 @@ func _clear_structure_selection() -> void:
 func _update_toolbar_visuals() -> void:
 	_dig_btn.set_pressed_no_signal(_active_tool == MacroTool.DIG)
 	_build_btn.set_pressed_no_signal(_active_tool == MacroTool.BUILD)
-	_structure_bar.visible = _active_tool == MacroTool.BUILD
+	var show_structures := _active_tool == MacroTool.BUILD
+	_structure_gap.visible = show_structures
+	_structure_bar.visible = show_structures
 	for type in _structure_buttons:
 		var btn: ActionToolButton = _structure_buttons[type]
 		var is_selected: bool = _selected_structure == type and _active_tool == MacroTool.BUILD
@@ -499,6 +505,7 @@ func handle_world_click(world_pos: Vector2) -> void:
 func _setup_toolbar() -> void:
 	_apply_toolbar_styles()
 	_toolbar_panel.clip_contents = true
+	_structure_gap.custom_minimum_size = Vector2(TOOLBAR_SECTION_GAP, 0.0)
 	_dig_btn.setup_from_sheet(SpritePaths.action_tool_sheet("dig"))
 	_build_btn.setup_from_sheet(SpritePaths.action_tool_sheet("build"))
 	_dig_btn.tooltip_text = "Dig (G)"
@@ -524,16 +531,16 @@ func _sync_toolbar_layout() -> void:
 	var panel_size := _measure_toolbar_size()
 	_toolbar_panel.size = panel_size
 	var vp := get_viewport().get_visible_rect().size
-	_toolbar_panel.position = Vector2(8.0, vp.y - 8.0 - panel_size.y)
+	_toolbar_panel.position = Vector2(TOOLBAR_EDGE_MARGIN, vp.y - TOOLBAR_EDGE_MARGIN - panel_size.y)
 
 
 func _measure_toolbar_size() -> Vector2:
-	var bar := _toolbar_panel.get_node("ToolBar") as HBoxContainer
-	var sep := float(bar.get_theme_constant("separation"))
+	var actions_bar := _toolbar_panel.get_node("ToolBar/ActionsBar") as HBoxContainer
+	var inner_sep := float(actions_bar.get_theme_constant("separation"))
 	var height := maxf(_dig_btn.get_minimum_size().y, 56.0)
-	var width := _dig_btn.get_minimum_size().x + sep + _build_btn.get_minimum_size().x
+	var width := _dig_btn.get_minimum_size().x + inner_sep + _build_btn.get_minimum_size().x
 	if _structure_bar.visible:
-		width += sep + _structure_bar.get_minimum_size().x
+		width += _structure_gap.custom_minimum_size.x + _structure_bar.get_minimum_size().x
 	return Vector2(width, height)
 
 
