@@ -3,7 +3,7 @@ extends Control
 const ANIM_SEC := 0.25
 
 @onready var _scrim: ColorRect = $Scrim
-@onready var _drawer: PanelContainer = $Drawer
+@onready var _drawer: Control = $Drawer
 @onready var _rail: PanelContainer = $Rail
 
 var _expanded := false

@@ -1,13 +1,12 @@
 extends Control
 class_name CitadelGrid
 
-const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
 const Layout = preload("res://scripts/data/citadel_layout.gd")
 
 signal cell_hovered(cell: Vector2i)
 signal cell_unhovered
 
-const HOVER_FILL := Color(0.35, 0.95, 0.4, 0.45)
+const HOVER_FILL := Color("#58111d", 0.45)
 
 var hovered_cell := Vector2i(-1, -1)
 
@@ -41,12 +40,9 @@ func _set_hovered(cell: Vector2i) -> void:
 
 
 func _cell_rect(cell: Vector2i) -> Rect2:
-	var step := Layout.CELL_SIZE + Layout.CELL_GAP
 	return Rect2(
-		cell.x * step,
-		cell.y * step,
-		Layout.CELL_SIZE,
-		Layout.CELL_SIZE,
+		Vector2(Layout.GRID_ORIGIN) + Vector2(cell.x * Layout.CELL_STRIDE.x, cell.y * Layout.CELL_STRIDE.y),
+		Vector2(Layout.CELL_SIZE),
 	)
 
 
@@ -60,12 +56,7 @@ func _local_to_cell(local: Vector2) -> Vector2i:
 
 
 func _draw() -> void:
-	var trough := HudThemeRes.carved_trough()
-	for y in Layout.GRID_ROWS:
-		for x in Layout.GRID_COLS:
-			var cell := Vector2i(x, y)
-			var rect := _cell_rect(cell)
-			draw_style_box(trough, rect)
-			if cell == hovered_cell:
-				draw_rect(rect, HOVER_FILL)
-				draw_rect(rect.grow(-2.0), HudThemeRes.SECONDARY, false, 2.0)
+	if hovered_cell.x < 0:
+		return
+	var rect := _cell_rect(hovered_cell)
+	draw_rect(rect, HOVER_FILL)

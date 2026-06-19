@@ -41,6 +41,10 @@ static func hud_icon_anim_meta(kind: String) -> String:
 	return HUD_ICON_DIR + "%s_icon_32_anim.meta.txt" % kind
 
 
+static func colony_drawer_bg() -> String:
+	return "res://assets/sprites/ui/colony/colony_drawer_bg_365.png"
+
+
 static func micro_background() -> String:
 	var v2 := "res://assets/micro/nursery_background_v2.png"
 	if ResourceLoader.exists(v2):
