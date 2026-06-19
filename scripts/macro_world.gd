@@ -44,7 +44,6 @@ var _feedback_timer: float = 0.0
 var _active_tool: MacroTool = MacroTool.BUILD
 var _selected_structure: String = ""
 var _structure_buttons: Dictionary = {}
-var _structure_wells: Dictionary = {}
 var _preview_valid_tex: Texture2D
 var _preview_invalid_tex: Texture2D
 
@@ -63,6 +62,7 @@ var _textures: Dictionary = {}
 var _macro_tileset
 var _terrain_painter
 var _terrain_depth_shader: Shader
+var _sky_bg: Sprite2D
 
 
 func _ready() -> void:
@@ -204,6 +204,41 @@ func _load_level() -> void:
 
 func _paint_level(level: Dictionary) -> void:
 	_terrain_painter.paint_all(terrain, level.cells, _macro_tileset)
+	_update_sky_background(level)
+
+
+func _ensure_sky_background() -> void:
+	if _sky_bg != null:
+		return
+	_sky_bg = Sprite2D.new()
+	_sky_bg.name = "SkyBackground"
+	_sky_bg.z_index = -10
+	_sky_bg.centered = false
+	add_child(_sky_bg)
+	move_child(_sky_bg, terrain.get_index())
+
+
+func _update_sky_background(level: Dictionary) -> void:
+	_ensure_sky_background()
+	var path := SpritePaths.macro_sky_background()
+	var tex: Texture2D = null
+	if ResourceLoader.exists(path):
+		tex = load(path) as Texture2D
+	if tex == null:
+		var image := Image.new()
+		if image.load(path) != OK:
+			_sky_bg.visible = false
+			return
+		tex = ImageTexture.create_from_image(image)
+	_sky_bg.texture = tex
+	var cells: Array = level.get("cells", [])
+	if cells.is_empty():
+		_sky_bg.visible = false
+		return
+	var surface_row := _find_surface_row(cells)
+	var surface_y := float(surface_row * GameTuning.TILE_SIZE)
+	_sky_bg.position = Vector2(0.0, surface_y - tex.get_height())
+	_sky_bg.visible = true
 
 
 func _apply_terrain_depth_shader(level: Dictionary) -> void:
@@ -315,15 +350,9 @@ func _update_toolbar_visuals() -> void:
 	_build_btn.set_pressed_no_signal(_active_tool == MacroTool.BUILD)
 	_structure_bar.visible = _active_tool == MacroTool.BUILD
 	for type in _structure_buttons:
-		var btn: Button = _structure_buttons[type]
+		var btn: ActionToolButton = _structure_buttons[type]
 		var is_selected: bool = _selected_structure == type and _active_tool == MacroTool.BUILD
-		btn.button_pressed = is_selected
-		if _structure_wells.has(type):
-			var well: PanelContainer = _structure_wells[type]
-			well.add_theme_stylebox_override(
-				"panel",
-				HudThemeRes.wave_pill() if is_selected else HudThemeRes.icon_well(),
-			)
+		btn.set_pressed_no_signal(is_selected)
 	call_deferred("_sync_toolbar_layout")
 
 
@@ -475,27 +504,15 @@ func _setup_toolbar() -> void:
 	_dig_btn.tooltip_text = "Dig (G)"
 	_build_btn.tooltip_text = "Build (B)"
 	for type in BUILD_TYPES + ["mine"]:
-		var well := PanelContainer.new()
-		well.add_theme_stylebox_override("panel", HudThemeRes.icon_well())
-		well.custom_minimum_size = Vector2(36, 36)
-		var center := CenterContainer.new()
-		center.custom_minimum_size = well.custom_minimum_size
-		var btn := Button.new()
-		btn.toggle_mode = true
-		btn.flat = true
-		btn.custom_minimum_size = Vector2(32, 32)
-		btn.icon = TowerSprites.make_tower_texture(type)
-		btn.expand_icon = true
+		var btn := ActionToolButton.new()
+		btn.setup_from_sheet(SpritePaths.structure_tool_sheet(type))
 		btn.tooltip_text = "%s (key %d)" % [
 			BUILD_LABELS.get(type, type),
 			BUILD_TYPES.find(type) + 1 if type != "mine" else 5,
 		]
 		btn.pressed.connect(_on_structure_button.bind(type))
-		center.add_child(btn)
-		well.add_child(center)
-		_structure_bar.add_child(well)
+		_structure_bar.add_child(btn)
 		_structure_buttons[type] = btn
-		_structure_wells[type] = well
 	_update_toolbar_visuals()
 	call_deferred("_sync_toolbar_layout")
 

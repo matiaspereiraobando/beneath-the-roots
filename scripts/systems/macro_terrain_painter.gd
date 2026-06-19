@@ -73,6 +73,9 @@ func compute_tunnel_mask(cells: Array, x: int, y: int) -> int:
 
 func _paint_cell(tile_map: TileMapLayer, cells: Array, x: int, y: int, tileset) -> void:
 	var cell_type: int = cells[y][x]
+	if cell_type == MacroCell.SKY:
+		tile_map.erase_cell(Vector2i(x, y))
+		return
 	var source_id: int
 	var atlas: Vector2i
 	if cell_type == MacroCell.ROCK and _cell_under_tower(x, y):

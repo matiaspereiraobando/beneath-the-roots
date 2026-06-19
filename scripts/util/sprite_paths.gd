@@ -49,6 +49,14 @@ static func action_tool_sheet(kind: String) -> String:
 	return "res://assets/sprites/ui/actions/actions_%s_56.png" % kind
 
 
+static func structure_tool_sheet(kind: String) -> String:
+	return "res://assets/sprites/ui/actions/structure_button_%s_56.png" % kind
+
+
+static func macro_sky_background() -> String:
+	return "res://assets/sprites/macro/top_bg_01.png"
+
+
 static func micro_background() -> String:
 	var v2 := "res://assets/micro/nursery_background_v2.png"
 	if ResourceLoader.exists(v2):
