@@ -26,12 +26,11 @@ static func _build_grid(data: Dictionary) -> Dictionary:
 		for x in cols:
 			row.append(MacroCell.ROCK)
 		cells.append(row)
+	for y in GameTuning.MACRO_SKY_ROWS:
+		for x in cols:
+			cells[y][x] = MacroCell.SKY
 	for x in cols:
-		cells[0][x] = MacroCell.SKY
-		cells[1][x] = MacroCell.SKY
-	# Full grass surface row (row 2)
-	for x in cols:
-		cells[2][x] = MacroCell.SURFACE
+		cells[GameTuning.MACRO_SKY_ROWS][x] = MacroCell.SURFACE
 	var spawn: Vector2i = Vector2i(data.spawnTile.x, data.spawnTile.y)
 	cells[spawn.y][spawn.x] = MacroCell.SPAWN
 	for pair in data.get("tunnelTiles", []):

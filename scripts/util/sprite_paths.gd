@@ -54,7 +54,7 @@ static func structure_tool_sheet(kind: String) -> String:
 
 
 static func macro_sky_background() -> String:
-	return "res://assets/sprites/macro/top_bg_01.png"
+	return "res://assets/sprites/macro/top_bg_02_1280_96.png"
 
 
 static func micro_background() -> String:
