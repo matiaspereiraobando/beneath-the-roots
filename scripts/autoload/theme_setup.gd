@@ -11,4 +11,7 @@ func _ready() -> void:
 	# Silkscreen is an 8px-grid font; use sizes 8, 16, 24, … (see HudTheme.PIXEL_FONT_STEP).
 	theme.default_font = font
 	theme.default_font_size = 16
+	const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
+	theme.set_font_size("font_size", "TooltipLabel", HudThemeRes.FONT_CAPTION)
+	theme.set_constant("outline_size", "TooltipLabel", HudThemeRes.OUTLINE_CAPTION)
 	get_tree().root.theme = theme

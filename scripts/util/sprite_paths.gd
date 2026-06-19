@@ -45,6 +45,10 @@ static func colony_drawer_bg() -> String:
 	return "res://assets/sprites/ui/colony/colony_drawer_bg_365.png"
 
 
+static func action_tool_sheet(kind: String) -> String:
+	return "res://assets/sprites/ui/actions/actions_%s_56.png" % kind
+
+
 static func micro_background() -> String:
 	var v2 := "res://assets/micro/nursery_background_v2.png"
 	if ResourceLoader.exists(v2):

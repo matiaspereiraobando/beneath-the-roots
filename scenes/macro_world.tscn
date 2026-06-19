@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://btr_macro_world"]
+[gd_scene load_steps=3 format=3 uid="uid://btr_macro_world"]
 
 [ext_resource type="Script" path="res://scripts/macro_world.gd" id="1_world"]
+[ext_resource type="Script" path="res://scripts/ui/action_tool_button.gd" id="2_action_btn"]
 
 [node name="MacroWorld" type="Node2D"]
 script = ExtResource("1_world")
@@ -22,31 +23,30 @@ layer = 10
 [node name="HudLayer" type="CanvasLayer" parent="."]
 layer = 11
 
-[node name="ToolBar" type="HBoxContainer" parent="HudLayer"]
-anchors_preset = 2
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = -52.0
-offset_right = 520.0
-offset_bottom = -8.0
+[node name="ToolBarPanel" type="PanelContainer" parent="HudLayer"]
+grow_horizontal = 0
 grow_vertical = 0
-theme_override_constants/separation = 6
+clip_contents = true
+theme_type_variation = &"GameHud"
 
-[node name="DigBtn" type="Button" parent="HudLayer/ToolBar"]
-custom_minimum_size = Vector2(72, 36)
+[node name="ToolBar" type="HBoxContainer" parent="HudLayer/ToolBarPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="DigBtn" type="TextureButton" parent="HudLayer/ToolBarPanel/ToolBar"]
+custom_minimum_size = Vector2(56, 56)
 layout_mode = 2
 toggle_mode = true
-text = "Dig"
+script = ExtResource("2_action_btn")
 
-[node name="BuildBtn" type="Button" parent="HudLayer/ToolBar"]
-custom_minimum_size = Vector2(72, 36)
+[node name="BuildBtn" type="TextureButton" parent="HudLayer/ToolBarPanel/ToolBar"]
+custom_minimum_size = Vector2(56, 56)
 layout_mode = 2
 toggle_mode = true
 button_pressed = true
-text = "Build"
+script = ExtResource("2_action_btn")
 
-[node name="StructureBar" type="HBoxContainer" parent="HudLayer/ToolBar"]
+[node name="StructureBar" type="HBoxContainer" parent="HudLayer/ToolBarPanel/ToolBar"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
@@ -54,9 +54,11 @@ theme_override_constants/separation = 4
 visible = false
 offset_right = 140.0
 offset_bottom = 72.0
+theme_type_variation = &"GameHud"
 
 [node name="VBox" type="VBoxContainer" parent="HudLayer/TowerMenu"]
 layout_mode = 2
+theme_override_constants/separation = 4
 
 [node name="Info" type="Label" parent="HudLayer/TowerMenu/VBox"]
 layout_mode = 2
@@ -64,6 +66,7 @@ text = "Spitter"
 
 [node name="Buttons" type="HBoxContainer" parent="HudLayer/TowerMenu/VBox"]
 layout_mode = 2
+theme_override_constants/separation = 4
 
 [node name="AddBtn" type="Button" parent="HudLayer/TowerMenu/VBox/Buttons"]
 layout_mode = 2

@@ -113,3 +113,52 @@ static func carved_trough() -> StyleBoxFlat:
 	box.shadow_size = 1
 	box.shadow_offset = Vector2(1, 1)
 	return box
+
+
+static func toolbar_panel() -> StyleBoxFlat:
+	var box := game_hud_panel()
+	box.border_width_left = 0
+	box.border_width_right = 0
+	box.border_width_top = 0
+	box.border_width_bottom = 0
+	box.shadow_size = 0
+	box.shadow_offset = Vector2.ZERO
+	return box
+
+
+static func apply_toolbar_text_button(btn: Button, accent: Color = ON_SURFACE) -> void:
+	apply_pixel_font(btn, FONT_CAPTION)
+	btn.add_theme_color_override("font_color", accent)
+	btn.add_theme_color_override("font_hover_color", PRIMARY)
+	btn.add_theme_color_override("font_pressed_color", PRIMARY)
+	btn.add_theme_color_override("font_disabled_color", ON_SURFACE_VARIANT)
+	btn.add_theme_stylebox_override("normal", ant_strip())
+	btn.add_theme_stylebox_override("hover", wave_pill())
+	btn.add_theme_stylebox_override("pressed", wave_pill())
+	btn.add_theme_stylebox_override("disabled", ant_strip())
+
+
+static func apply_toolbar_icon_button(btn: Button) -> void:
+	apply_pixel_font(btn, FONT_CAPTION)
+	btn.add_theme_stylebox_override("normal", icon_well())
+	btn.add_theme_stylebox_override("hover", wave_pill())
+	btn.add_theme_stylebox_override("pressed", wave_pill())
+	btn.add_theme_stylebox_override("disabled", icon_well())
+	btn.add_theme_color_override("icon_normal_color", Color.WHITE)
+	btn.add_theme_color_override("icon_pressed_color", PRIMARY)
+	btn.add_theme_color_override("icon_hover_color", Color.WHITE)
+	btn.add_theme_color_override("icon_disabled_color", ON_SURFACE_VARIANT)
+
+
+static func set_toolbar_toggle_pressed(btn: Button, is_on: bool) -> void:
+	if is_on:
+		btn.add_theme_stylebox_override("normal", wave_pill())
+		btn.add_theme_stylebox_override("pressed", wave_pill())
+		btn.add_theme_color_override("font_color", PRIMARY)
+		btn.add_theme_color_override("font_pressed_color", PRIMARY)
+	else:
+		btn.add_theme_stylebox_override("normal", ant_strip())
+		btn.add_theme_stylebox_override("pressed", wave_pill())
+		btn.add_theme_color_override("font_color", ON_SURFACE)
+		btn.add_theme_color_override("font_pressed_color", PRIMARY)
+

@@ -3,6 +3,9 @@ extends Node2D
 const MacroCell = preload("res://scripts/data/macro_tiles.gd").Cell
 const TowerSprites = preload("res://scripts/util/tower_sprites.gd")
 const PlacementRules = preload("res://scripts/systems/placement.gd")
+const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
+const SpritePaths = preload("res://scripts/util/sprite_paths.gd")
+const ActionToolButton = preload("res://scripts/ui/action_tool_button.gd")
 
 const BUILD_TYPES := ["spitter", "crusher", "needle", "gland"]
 const BUILD_LABELS := {
@@ -13,7 +16,7 @@ const BUILD_LABELS := {
 	"mine": "Fungal mine",
 }
 
-enum MacroTool { DIG, BUILD }
+enum MacroTool { NONE, DIG, BUILD }
 
 @onready var camera: Camera2D = $Camera2D
 @onready var terrain: TileMapLayer = $Terrain
@@ -25,9 +28,10 @@ enum MacroTool { DIG, BUILD }
 @onready var _add_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/AddBtn
 @onready var _remove_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/RemoveBtn
 @onready var _close_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/CloseBtn
-@onready var _dig_btn: Button = $HudLayer/ToolBar/DigBtn
-@onready var _build_btn: Button = $HudLayer/ToolBar/BuildBtn
-@onready var _structure_bar: HBoxContainer = $HudLayer/ToolBar/StructureBar
+@onready var _dig_btn: ActionToolButton = $HudLayer/ToolBarPanel/ToolBar/DigBtn
+@onready var _build_btn: ActionToolButton = $HudLayer/ToolBarPanel/ToolBar/BuildBtn
+@onready var _structure_bar: HBoxContainer = $HudLayer/ToolBarPanel/ToolBar/StructureBar
+@onready var _toolbar_panel: PanelContainer = $HudLayer/ToolBarPanel
 
 var _dig_hints: Node2D
 var _preview_root: Node2D
@@ -39,6 +43,7 @@ var _feedback_timer: float = 0.0
 var _active_tool: MacroTool = MacroTool.BUILD
 var _selected_structure: String = ""
 var _structure_buttons: Dictionary = {}
+var _structure_wells: Dictionary = {}
 var _preview_valid_tex: Texture2D
 var _preview_invalid_tex: Texture2D
 
@@ -72,6 +77,8 @@ func _ready() -> void:
 	_setup_world_ui()
 	_setup_toolbar()
 	_wire_signals()
+	get_viewport().size_changed.connect(_sync_toolbar_layout)
+	call_deferred("_sync_toolbar_layout")
 	call_deferred("_bootstrap_level")
 
 
@@ -101,8 +108,8 @@ func _wire_signals() -> void:
 	_add_btn.pressed.connect(_on_add_soldier)
 	_remove_btn.pressed.connect(_on_remove_soldier)
 	_close_btn.pressed.connect(_hide_tower_menu)
-	_dig_btn.pressed.connect(func(): _set_tool(MacroTool.DIG))
-	_build_btn.pressed.connect(func(): _set_tool(MacroTool.BUILD))
+	_dig_btn.pressed.connect(_on_dig_pressed)
+	_build_btn.pressed.connect(_on_build_pressed)
 
 
 func _load_textures() -> void:
@@ -232,8 +239,35 @@ func _on_phase_changed(phase: GameState.Phase) -> void:
 			_tower_sprites[tower.id].modulate = Color.WHITE
 
 
+func _on_dig_pressed() -> void:
+	if _active_tool == MacroTool.DIG:
+		_clear_tool()
+	else:
+		_set_tool(MacroTool.DIG)
+
+
+func _on_build_pressed() -> void:
+	if _active_tool == MacroTool.BUILD:
+		_clear_tool()
+	else:
+		_set_tool(MacroTool.BUILD)
+
+
 func _set_tool(tool: MacroTool) -> void:
+	if tool == MacroTool.NONE:
+		_clear_tool()
+		return
 	_active_tool = tool
+	if tool == MacroTool.DIG:
+		_selected_structure = ""
+	_update_toolbar_visuals()
+	_update_tool_hint()
+	_refresh_dig_hints()
+
+
+func _clear_tool() -> void:
+	_active_tool = MacroTool.NONE
+	_selected_structure = ""
 	_update_toolbar_visuals()
 	_update_tool_hint()
 	_refresh_dig_hints()
@@ -253,12 +287,20 @@ func _clear_structure_selection() -> void:
 
 
 func _update_toolbar_visuals() -> void:
-	_dig_btn.button_pressed = _active_tool == MacroTool.DIG
-	_build_btn.button_pressed = _active_tool == MacroTool.BUILD
+	_dig_btn.set_pressed_no_signal(_active_tool == MacroTool.DIG)
+	_build_btn.set_pressed_no_signal(_active_tool == MacroTool.BUILD)
 	_structure_bar.visible = _active_tool == MacroTool.BUILD
 	for type in _structure_buttons:
 		var btn: Button = _structure_buttons[type]
-		btn.button_pressed = _selected_structure == type
+		var is_selected: bool = _selected_structure == type and _active_tool == MacroTool.BUILD
+		btn.button_pressed = is_selected
+		if _structure_wells.has(type):
+			var well: PanelContainer = _structure_wells[type]
+			well.add_theme_stylebox_override(
+				"panel",
+				HudThemeRes.wave_pill() if is_selected else HudThemeRes.icon_well(),
+			)
+	call_deferred("_sync_toolbar_layout")
 
 
 func _update_tool_hint() -> void:
@@ -268,11 +310,13 @@ func _update_tool_hint() -> void:
 		return
 	var hint := ""
 	match _active_tool:
+		MacroTool.NONE:
+			hint = ""
 		MacroTool.DIG:
-			hint = "Dig tool — click rock beside a tunnel (key 6)"
+			hint = "Dig tool — click rock beside a tunnel (G)"
 		MacroTool.BUILD:
 			if _selected_structure == "":
-				hint = "Build tool — pick a structure (keys 1–5)"
+				hint = "Build tool — pick a structure (keys 1–5, B)"
 			elif _selected_structure == "mine":
 				hint = "Fungal mine — click a tunnel tile"
 			else:
@@ -281,6 +325,8 @@ func _update_tool_hint() -> void:
 	if hint != "" and _feedback_timer <= 0.0:
 		_build_feedback.text = hint
 		_build_feedback.visible = true
+	elif _build_feedback and _feedback_timer <= 0.0:
+		_build_feedback.visible = false
 
 
 func _update_camera_pan(delta: float) -> void:
@@ -327,6 +373,20 @@ func _world_to_screen(world_pos: Vector2) -> Vector2:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("macro_tool_dig"):
+		if _active_tool == MacroTool.DIG:
+			_clear_tool()
+		else:
+			_set_tool(MacroTool.DIG)
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("macro_tool_build"):
+		if _active_tool == MacroTool.BUILD:
+			_clear_tool()
+		else:
+			_set_tool(MacroTool.BUILD)
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
 			_clear_structure_selection()
@@ -344,8 +404,6 @@ func _unhandled_input(event: InputEvent) -> void:
 					_select_structure("gland")
 				KEY_5:
 					_select_structure("mine")
-				KEY_6:
-					_set_tool(MacroTool.DIG)
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
@@ -386,10 +444,22 @@ func handle_world_click(world_pos: Vector2) -> void:
 
 
 func _setup_toolbar() -> void:
+	_apply_toolbar_styles()
+	_toolbar_panel.clip_contents = true
+	_dig_btn.setup_from_sheet(SpritePaths.action_tool_sheet("dig"))
+	_build_btn.setup_from_sheet(SpritePaths.action_tool_sheet("build"))
+	_dig_btn.tooltip_text = "Dig (G)"
+	_build_btn.tooltip_text = "Build (B)"
 	for type in BUILD_TYPES + ["mine"]:
+		var well := PanelContainer.new()
+		well.add_theme_stylebox_override("panel", HudThemeRes.icon_well())
+		well.custom_minimum_size = Vector2(36, 36)
+		var center := CenterContainer.new()
+		center.custom_minimum_size = well.custom_minimum_size
 		var btn := Button.new()
 		btn.toggle_mode = true
-		btn.custom_minimum_size = Vector2(36, 36)
+		btn.flat = true
+		btn.custom_minimum_size = Vector2(32, 32)
 		btn.icon = TowerSprites.make_tower_texture(type)
 		btn.expand_icon = true
 		btn.tooltip_text = "%s (key %d)" % [
@@ -397,9 +467,51 @@ func _setup_toolbar() -> void:
 			BUILD_TYPES.find(type) + 1 if type != "mine" else 5,
 		]
 		btn.pressed.connect(_on_structure_button.bind(type))
-		_structure_bar.add_child(btn)
+		center.add_child(btn)
+		well.add_child(center)
+		_structure_bar.add_child(well)
 		_structure_buttons[type] = btn
+		_structure_wells[type] = well
 	_update_toolbar_visuals()
+	call_deferred("_sync_toolbar_layout")
+
+
+func _sync_toolbar_layout() -> void:
+	if not is_instance_valid(_toolbar_panel):
+		return
+	_toolbar_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	var panel_size := _measure_toolbar_size()
+	_toolbar_panel.size = panel_size
+	var vp := get_viewport().get_visible_rect().size
+	_toolbar_panel.position = Vector2(8.0, vp.y - 8.0 - panel_size.y)
+
+
+func _measure_toolbar_size() -> Vector2:
+	var bar := _toolbar_panel.get_node("ToolBar") as HBoxContainer
+	var sep := float(bar.get_theme_constant("separation"))
+	var height := maxf(_dig_btn.get_minimum_size().y, 56.0)
+	var width := _dig_btn.get_minimum_size().x + sep + _build_btn.get_minimum_size().x
+	if _structure_bar.visible:
+		width += sep + _structure_bar.get_minimum_size().x
+	return Vector2(width, height)
+
+
+func _apply_toolbar_styles() -> void:
+	_toolbar_panel.add_theme_stylebox_override("panel", HudThemeRes.toolbar_panel())
+	_apply_tower_menu_styles()
+	if _build_feedback:
+		HudThemeRes.apply_pixel_label(_build_feedback, HudThemeRes.FONT_CAPTION)
+		_build_feedback.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE_VARIANT)
+		_build_feedback.add_theme_color_override("font_outline_color", Color.BLACK)
+
+
+func _apply_tower_menu_styles() -> void:
+	tower_menu.add_theme_stylebox_override("panel", HudThemeRes.ant_strip())
+	HudThemeRes.apply_pixel_label(_tower_info, HudThemeRes.FONT_CAPTION)
+	_tower_info.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE)
+	for btn in [_add_btn, _remove_btn]:
+		HudThemeRes.apply_toolbar_text_button(btn, HudThemeRes.SECONDARY)
+	HudThemeRes.apply_toolbar_text_button(_close_btn, HudThemeRes.ON_SURFACE_VARIANT)
 
 
 func _on_structure_button(type: String) -> void:
@@ -506,9 +618,6 @@ func _setup_world_ui() -> void:
 	_build_feedback = Label.new()
 	_build_feedback.name = "BuildFeedback"
 	_build_feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_build_feedback.add_theme_color_override("font_color", Color(0.78, 0.72, 0.63))
-	_build_feedback.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
-	_build_feedback.add_theme_constant_override("outline_size", 4)
 	_build_feedback.visible = false
 	$HudLayer.add_child(_build_feedback)
 	_build_feedback.set_anchors_preset(Control.PRESET_TOP_WIDE)
