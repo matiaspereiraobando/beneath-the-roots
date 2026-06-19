@@ -1,8 +1,10 @@
 extends RefCounted
 
 const MacroCell = preload("res://scripts/data/macro_tiles.gd").Cell
+const PlacementRules = preload("res://scripts/systems/placement.gd")
 const SOURCE_BASIC := 0
 const SOURCE_AUTOTILE := 1
+const BASIC_STRUCTURE_BASE := 4
 
 const MASK_N := 1
 const MASK_NE := 2
@@ -64,7 +66,7 @@ func compute_tunnel_mask(cells: Array, x: int, y: int) -> int:
 		var n := Vector2i(x, y) + OFFSETS[i]
 		if not _in_bounds(cells, n):
 			continue
-		if cells[n.y][n.x] == MacroCell.TUNNEL:
+		if _counts_as_tunnel_neighbor(cells, n):
 			mask |= MASK_BITS[i]
 	return mask
 
@@ -73,16 +75,28 @@ func _paint_cell(tile_map: TileMapLayer, cells: Array, x: int, y: int, tileset) 
 	var cell_type: int = cells[y][x]
 	var source_id: int
 	var atlas: Vector2i
-	match cell_type:
-		MacroCell.ROCK:
-			var mask := compute_tunnel_mask(cells, x, y)
-			mask = tileset.resolve_mask(mask)
-			source_id = SOURCE_AUTOTILE
-			atlas = tileset.autotile_atlas_coords(mask)
-		_:
-			source_id = SOURCE_BASIC
-			atlas = tileset.basic_atlas_coords(BASIC_ATLAS.get(cell_type, 0))
+	if cell_type == MacroCell.ROCK and _cell_under_tower(x, y):
+		source_id = SOURCE_BASIC
+		atlas = tileset.basic_atlas_coords(BASIC_STRUCTURE_BASE)
+	elif cell_type == MacroCell.ROCK:
+		var mask := compute_tunnel_mask(cells, x, y)
+		mask = tileset.resolve_mask(mask)
+		source_id = SOURCE_AUTOTILE
+		atlas = tileset.autotile_atlas_coords(mask)
+	else:
+		source_id = SOURCE_BASIC
+		atlas = tileset.basic_atlas_coords(BASIC_ATLAS.get(cell_type, 0))
 	tile_map.set_cell(Vector2i(x, y), source_id, atlas)
+
+
+func _cell_under_tower(x: int, y: int) -> bool:
+	return PlacementRules.cell_under_tower(Vector2i(x, y))
+
+
+func _counts_as_tunnel_neighbor(cells: Array, pos: Vector2i) -> bool:
+	if cells[pos.y][pos.x] == MacroCell.TUNNEL:
+		return true
+	return PlacementRules.cell_under_tower(pos)
 
 
 func _in_bounds(cells: Array, pos: Vector2i) -> bool:

@@ -815,6 +815,14 @@ func _on_tower_placed(tower: Dictionary) -> void:
 	towers_root.add_child(sprite)
 	_tower_sprites[tower.id] = sprite
 	_sync_gland_auras()
+	_refresh_tower_terrain(tower)
+
+
+func _refresh_tower_terrain(tower: Dictionary) -> void:
+	for foot_cell in PlacementRules.tower_footprint_cells(tower):
+		_terrain_painter.refresh_region(
+			terrain, GameState.level_data.cells, foot_cell, 1, _macro_tileset
+		)
 
 
 func _on_tower_fired(tower_id: int) -> void:
