@@ -11,11 +11,14 @@ static func make_structure_sprite_frames(structure_type: String) -> SpriteFrames
 	var sheet_path := STRUCTURES_DIR + structure_type + "/idle_sheet.png"
 	if ResourceLoader.exists(sheet_path):
 		var frame_size := _frame_size_for(structure_type)
-		return _sprite_frames_from_sheet(sheet_path, frame_size)
+		return _sprite_frames_from_sheet(sheet_path, frame_size, structure_type)
 	return _fallback_sprite_frames(structure_type)
 
 
 static func make_tower_texture(tower_type: String) -> Texture2D:
+	var static_path := STRUCTURES_DIR + tower_type + "/static.png"
+	if ResourceLoader.exists(static_path):
+		return load(static_path) as Texture2D
 	var frames := make_structure_sprite_frames(tower_type)
 	if frames.has_animation(&"idle") and frames.get_frame_count(&"idle") > 0:
 		return frames.get_frame_texture(&"idle", 0)
@@ -53,19 +56,37 @@ static func _mine_frame_size() -> int:
 	return MINE_FRAME_SIZE
 
 
-static func _sprite_frames_from_sheet(sheet_path: String, frame_size: int) -> SpriteFrames:
+static func _sprite_frames_from_sheet(sheet_path: String, frame_size: int, structure_type: String = "") -> SpriteFrames:
 	var sheet: Texture2D = load(sheet_path)
 	var frames := SpriteFrames.new()
 	frames.add_animation(&"idle")
 	frames.set_animation_loop(&"idle", true)
-	var sheet_w := int(sheet.get_width())
-	var count := maxi(1, int(float(sheet_w) / float(frame_size)))
+	var meta := _load_structure_meta(structure_type)
+	var frame_sec := GameTuning.STRUCTURE_IDLE_FRAME_SEC
+	var count := int(meta.get("frames", 0))
+	if count <= 0:
+		var sheet_w := int(sheet.get_width())
+		count = maxi(1, int(float(sheet_w) / float(frame_size)))
 	for i in count:
 		var atlas := AtlasTexture.new()
 		atlas.atlas = sheet
 		atlas.region = Rect2i(i * frame_size, 0, frame_size, frame_size)
-		frames.add_frame(&"idle", atlas, GameTuning.STRUCTURE_IDLE_FRAME_SEC)
+		frames.add_frame(&"idle", atlas, frame_sec)
 	return frames
+
+
+static func _load_structure_meta(structure_type: String) -> Dictionary:
+	if structure_type.is_empty():
+		return {}
+	var meta_path := STRUCTURES_DIR + structure_type + "/idle.meta.txt"
+	if not FileAccess.file_exists(meta_path):
+		return {}
+	var meta: Dictionary = {}
+	for line in FileAccess.get_file_as_string(meta_path).split("\n"):
+		var parts := line.split("=", true, 1)
+		if parts.size() == 2:
+			meta[parts[0].strip_edges()] = int(parts[1].strip_edges())
+	return meta
 
 
 static func _fallback_sprite_frames(structure_type: String) -> SpriteFrames:

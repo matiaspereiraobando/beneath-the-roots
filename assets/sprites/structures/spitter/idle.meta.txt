@@ -1,4 +1,4 @@
-frames=9
+frames=13
 width=64
 height=64
 frame_ms=150
