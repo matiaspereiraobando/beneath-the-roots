@@ -96,19 +96,21 @@ Player uses **Dig** and **Build** tools on the macro map (toolbar + keys 1–6).
 
 | Type | HP | Speed | Damage | Reward |
 |------|-----|-------|--------|--------|
-| Skitter | 30 | 55 | 8 | 8 |
-| Chitin | 80 | 30 | 15 | 15 |
-| Scarab | 200 | 22 | 25 | 40 |
+| Skitter | 30 | 110 | 8 | 8 |
+| Mite | 18 | 145 | 5 | 5 |
+| Chitin | 80 | 60 | 15 | 15 |
+| Borer | 120 | 45 | 18 | 12 |
+| Scarab | 200 | 44 | 25 | 40 |
 
 ## Levels
 
-| # | ID | Waves | Teaching |
-|---|-----|-------|----------|
-| 1 | level1_breach | 6 | Queue, feed, dig, spitter, soldiers |
-| 2 | level2_fork | 6 | Fork path, crusher, mines |
-| 3 | level3_depth | 6 | Long path, needle, gland, boss wave |
+| # | ID | Waves | Notes |
+|---|-----|-------|-------|
+| — | first_breach | 20 | Shippable sandbox — **First Breach** |
+| 2 | level2_fork | — | Coming soon |
+| 3 | level3_depth | — | Coming soon |
 
-Level 0 (`level0_test`) is dev-only with 3 waves.
+Legacy `level0_test` (3 waves) kept on disk for internal fallback only.
 
 ## Win / lose
 

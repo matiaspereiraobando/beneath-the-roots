@@ -34,6 +34,7 @@ const SOLDIER_DPS_BONUS := 2.0
 const SOLDIER_FIRE_RATE_BONUS := 0.15
 const PROJECTILE_SPEED := 400.0
 const STRUCTURE_IDLE_FRAME_SEC := 0.5
+const ENEMY_WALK_FRAME_SEC := 0.1
 
 const TOWER_COSTS := {
 	"spitter": 40,
@@ -101,7 +102,9 @@ const STARVE_FIRE_RATE_MULT := 0.65
 
 const ENEMY_STATS := {
 	"skitter": {"hp": 30, "speed": 110.0, "damage": 8, "reward": 8},
+	"mite": {"hp": 18, "speed": 145.0, "damage": 5, "reward": 5},
 	"chitin": {"hp": 80, "speed": 60.0, "damage": 15, "reward": 15},
+	"borer": {"hp": 120, "speed": 45.0, "damage": 18, "reward": 12},
 	"scarab": {"hp": 200, "speed": 44.0, "damage": 25, "reward": 40},
 }
 

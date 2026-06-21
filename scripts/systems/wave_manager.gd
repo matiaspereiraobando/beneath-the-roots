@@ -18,10 +18,9 @@ func update(delta: float) -> void:
 
 
 func _try_spawn(delta: float) -> void:
-	var spent: float = delta
+	GameState.tick_spawn_timers(delta)
 	while true:
-		var entry: Dictionary = GameState.pop_ready_spawn(spent)
-		spent = 0.0
+		var entry: Dictionary = GameState.pop_ready_spawn()
 		if entry.is_empty():
 			break
 		var spawn_data: Dictionary = GameState.level_data.spawnTile
@@ -30,7 +29,7 @@ func _try_spawn(delta: float) -> void:
 		if path.is_empty():
 			path = PackedVector2Array([pathfinding.tile_center(spawn)])
 		var wave_idx: int = int(entry.get("wave_idx", -1))
-		GameState.spawn_enemy(str(entry.type), path, wave_idx)
+		GameState.spawn_enemy(str(entry.get("type", "skitter")), path, wave_idx)
 
 
 func _move_enemies(delta: float) -> void:

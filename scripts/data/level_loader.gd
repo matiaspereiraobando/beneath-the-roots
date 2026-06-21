@@ -7,7 +7,7 @@ const MacroCell = preload("res://scripts/data/macro_tiles.gd").Cell
 static func load_level(level_id: String) -> Dictionary:
 	var path := LEVEL_DIR + level_id + ".json"
 	if not FileAccess.file_exists(path):
-		path = LEVEL_DIR + "level0_test.json"
+		path = LEVEL_DIR + "first_breach.json"
 	var file := FileAccess.open(path, FileAccess.READ)
 	var data: Variant = JSON.parse_string(file.get_as_text())
 	file.close()

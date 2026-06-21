@@ -57,6 +57,14 @@ static func macro_sky_background() -> String:
 	return "res://assets/sprites/macro/top_bg_02_1280_96.png"
 
 
+static func enemy_walk_sheet(enemy_type: String) -> String:
+	return "res://assets/sprites/enemies/%s/walk_sheet.png" % enemy_type
+
+
+static func enemy_static(enemy_type: String) -> String:
+	return "res://assets/sprites/enemies/%s/static.png" % enemy_type
+
+
 static func micro_background() -> String:
 	var v2 := "res://assets/micro/nursery_background_v2.png"
 	if ResourceLoader.exists(v2):

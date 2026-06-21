@@ -2,6 +2,7 @@ extends Node2D
 
 const MacroCell = preload("res://scripts/data/macro_tiles.gd").Cell
 const TowerSprites = preload("res://scripts/util/tower_sprites.gd")
+const EnemySprites = preload("res://scripts/util/enemy_sprites.gd")
 const PlacementRules = preload("res://scripts/systems/placement.gd")
 const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
 const SpritePaths = preload("res://scripts/util/sprite_paths.gd")
@@ -142,15 +143,6 @@ func _wire_signals() -> void:
 func _load_textures() -> void:
 	for tower_type in BUILD_TYPES + ["mine"]:
 		_textures[tower_type] = TowerSprites.make_tower_texture(tower_type)
-	_textures["skitter"] = _load_tex("res://assets/sprites/skitter.png")
-	_textures["chitin"] = _textures["skitter"]
-
-
-func _load_tex(path: String) -> Texture2D:
-	var image := Image.new()
-	if image.load(path) != OK:
-		return null
-	return ImageTexture.create_from_image(image)
 
 
 func _make_preview_textures() -> void:
@@ -627,11 +619,11 @@ func _on_remove_soldier() -> void:
 
 
 func _on_enemy_spawned(enemy: Dictionary) -> void:
-	var sprite := Sprite2D.new()
-	sprite.texture = _textures.get(enemy.type, _textures.skitter)
+	var sprite := AnimatedSprite2D.new()
+	sprite.sprite_frames = EnemySprites.make_walk_sprite_frames(str(enemy.type))
+	sprite.animation = &"walk"
+	sprite.play()
 	sprite.position = enemy.position
-	if enemy.type == "chitin":
-		sprite.modulate = Color(0.7, 0.55, 0.45)
 	enemies_root.add_child(sprite)
 	_enemy_sprites[enemy.id] = sprite
 
@@ -945,8 +937,16 @@ func _sync_mine_sprite(mine: Dictionary) -> void:
 
 func _sync_enemy_positions() -> void:
 	for enemy in GameState.enemies:
-		if _enemy_sprites.has(enemy.id):
-			_enemy_sprites[enemy.id].position = enemy.position
+		if not _enemy_sprites.has(enemy.id):
+			continue
+		var sprite: AnimatedSprite2D = _enemy_sprites[enemy.id]
+		sprite.position = enemy.position
+		var path: PackedVector2Array = enemy.path
+		var idx: int = int(enemy.path_index)
+		if idx < path.size() - 1:
+			var dx: float = path[idx + 1].x - enemy.position.x
+			if absf(dx) > 0.5:
+				sprite.flip_h = dx < 0.0
 
 
 func _sync_projectiles() -> void:

@@ -45,7 +45,7 @@ var queen_satiety: float = 100.0
 var phase: Phase = Phase.PLAYING
 var next_wave_index: int = 0
 var next_wave_timer: float = 40.0
-var current_level_id: String = "level1_breach"
+var current_level_id: String = "first_breach"
 var free_soldiers: int = 0
 var gatherer_count: int = 0
 var builder_count: int = 0
@@ -557,16 +557,21 @@ func append_wave_spawns(wave_idx: int) -> void:
 	if wave_idx >= waves.size():
 		return
 	var wave: Dictionary = waves[wave_idx]
-	var delay := 0.0
-	for group in wave.enemies:
-		delay += group.get("delay", 0.0)
-		for i in group.count:
+	var wait := 0.0
+	for group in wave.get("enemies", []):
+		if typeof(group) != TYPE_DICTIONARY:
+			continue
+		wait += float(group.get("delay", 0.0))
+		var count := int(group.get("count", 0))
+		var interval := float(group.get("interval", 0.0))
+		var enemy_type := str(group.get("type", "skitter"))
+		for _i in count:
 			_spawn_queue.append({
-				"type": group.type,
-				"timer": delay,
+				"type": enemy_type,
+				"timer": wait,
 				"wave_idx": wave_idx,
 			})
-			delay += group.interval
+			wait = interval
 
 
 func _try_award_wave_bonus(wave_idx: int) -> void:
@@ -644,10 +649,15 @@ func has_pending_spawns() -> bool:
 	return not _spawn_queue.is_empty()
 
 
-func pop_ready_spawn(delta: float) -> Dictionary:
+func tick_spawn_timers(delta: float) -> void:
+	if _spawn_queue.is_empty():
+		return
+	_spawn_queue[0].timer = float(_spawn_queue[0].timer) - delta
+
+
+func pop_ready_spawn(_delta: float = 0.0) -> Dictionary:
 	if _spawn_queue.is_empty():
 		return {}
-	_spawn_queue[0].timer = float(_spawn_queue[0].timer) - delta
 	if float(_spawn_queue[0].timer) > 0.0:
 		return {}
 	var entry: Dictionary = _spawn_queue[0]

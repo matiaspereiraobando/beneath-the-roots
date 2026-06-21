@@ -20,7 +20,7 @@
 | Queen (macro) | 48×48 | `assets/sprites/queen.png` |
 | Queen (micro nursery) | ~28×22 placeholder | `assets/sprites/v2/side/queen_side.png` or procedural |
 | Nursery background | 256×256 | `assets/micro/nursery_background.png` (v2: `nursery_background_v2.png`) |
-| Enemies | 24×32 | `assets/sprites/` |
+| Enemies | 32×32 walk sheets (11 frames) | `assets/sprites/enemies/<id>/walk_sheet.png` |
 | Towers / structures | 64×64 idle sheets (2×2 footprint) | `assets/sprites/structures/<id>/` |
 | Fungal mine | 32×32 idle sheet (1×1) | `assets/sprites/structures/mine/` |
 | Tunnel tileset (legacy PNG) | 16×16 | `assets/sprites/tunnel-tileset.png` |
