@@ -31,6 +31,8 @@ signal dig_started(cell: Vector2i)
 signal dig_completed(cell: Vector2i)
 signal mine_placed(mine: Dictionary)
 signal mine_triggered(mine: Dictionary)
+signal mine_rearm_started(mine: Dictionary)
+signal mine_rearmed(mine: Dictionary)
 signal cells_changed(cell: Vector2i)
 signal tower_fired(tower_id: int)
 signal combat_effects_changed
@@ -57,6 +59,7 @@ var enemies: Array = []
 var towers: Array = []
 var mines: Array = []
 var dig_jobs: Array = []
+var mine_rearm_jobs: Array = []
 var projectiles: Array = []
 var combat_effects: Array = []
 
@@ -98,6 +101,7 @@ func reset_for_level(level_id: String, starting_biomass: int = 50, max_hp: int =
 	towers.clear()
 	mines.clear()
 	dig_jobs.clear()
+	mine_rearm_jobs.clear()
 	projectiles.clear()
 	combat_effects.clear()
 	_spawn_queue.clear()
@@ -316,7 +320,6 @@ func schedule_next_wave() -> void:
 	var wave_idx := next_wave_index
 	append_wave_spawns(wave_idx)
 	_wave_spawns_scheduled[wave_idx] = true
-	rearm_mines()
 	wave_started.emit(wave_idx)
 	next_wave_index += 1
 	next_wave_timer = GameTuning.WAVE_INTERVAL
@@ -392,6 +395,54 @@ func get_mine_at(cell: Vector2i) -> Dictionary:
 	return {}
 
 
+func get_mine_by_id(mine_id: int) -> Dictionary:
+	for mine in mines:
+		if mine.id == mine_id:
+			return mine
+	return {}
+
+
+func is_rearming_mine(mine_id: int) -> bool:
+	for job in mine_rearm_jobs:
+		if int(job.mine_id) == mine_id:
+			return true
+	return false
+
+
+func is_rearming_at(cell: Vector2i) -> bool:
+	for job in mine_rearm_jobs:
+		var mine := get_mine_by_id(int(job.mine_id))
+		if not mine.is_empty() and mine.tile_x == cell.x and mine.tile_y == cell.y:
+			return true
+	return false
+
+
+func start_mine_rearm(mine: Dictionary) -> String:
+	if not is_playing():
+		return "Cannot rearm right now."
+	if mine.is_empty():
+		return "No mine selected."
+	if mine.armed:
+		return "Mine is already armed."
+	if is_rearming_mine(mine.id):
+		return "Already rearming."
+	mine_rearm_jobs.append({
+		"mine_id": mine.id,
+		"progress": 0.0,
+		"duration": GameTuning.MINE_REARM_DURATION,
+	})
+	mine_rearm_started.emit(mine)
+	return ""
+
+
+func complete_mine_rearm(mine_id: int) -> void:
+	var mine := get_mine_by_id(mine_id)
+	if mine.is_empty():
+		return
+	mine.armed = true
+	mine_rearmed.emit(mine)
+
+
 func place_tower(anchor: Vector2i, tower_type: String) -> String:
 	if tower_type == "mine":
 		return "Select mine with key 5, then click a tunnel tile."
@@ -440,11 +491,6 @@ func place_mine(cell: Vector2i) -> String:
 	mines.append(mine)
 	mine_placed.emit(mine)
 	return ""
-
-
-func rearm_mines() -> void:
-	for mine in mines:
-		mine.armed = true
 
 
 func repath_enemies(pathfinding: GridPathfinding) -> void:

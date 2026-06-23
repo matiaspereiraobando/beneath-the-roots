@@ -25,7 +25,7 @@ const ENTRIES := {
 	"mine": {
 		"name": "Fungal mine",
 		"attack_type": "Proximity trap",
-		"description": "Arms on a tunnel tile and detonates when an enemy steps on it. Rearms each build phase.",
+		"description": "Arms on a tunnel tile and detonates when an enemy steps on it. Click a spent mine to rearm it manually.",
 	},
 }
 
@@ -77,6 +77,7 @@ static func stat_lines(type: String) -> PackedStringArray:
 
 	if type == "mine":
 		lines.append("Damage: %d (once per trigger)" % GameTuning.MINE_DAMAGE)
+		lines.append("Rearm: manual, %.0fs" % GameTuning.MINE_REARM_DURATION)
 		lines.append("Trigger: on-path proximity")
 		return lines
 

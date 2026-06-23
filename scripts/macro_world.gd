@@ -2,6 +2,7 @@ extends Node2D
 
 const MacroCell = preload("res://scripts/data/macro_tiles.gd").Cell
 const TowerSprites = preload("res://scripts/util/tower_sprites.gd")
+const ProjectileSprites = preload("res://scripts/util/projectile_sprites.gd")
 const EnemySprites = preload("res://scripts/util/enemy_sprites.gd")
 const PlacementRules = preload("res://scripts/systems/placement.gd")
 const TowerCatalog = preload("res://scripts/data/tower_catalog.gd")
@@ -37,6 +38,7 @@ enum MacroTool { NONE, DIG, BUILD }
 @onready var towers_root: Node2D = $Towers
 @onready var projectiles_root: Node2D = $Projectiles
 @onready var tower_menu: PanelContainer = $HudLayer/TowerMenu
+@onready var mine_menu: PanelContainer = $HudLayer/MineMenu
 @onready var structure_info_panel: PanelContainer = $HudLayer/StructureInfoPanel
 @onready var _structure_info_title: Label = $HudLayer/StructureInfoPanel/Margin/VBox/Title
 @onready var _structure_info_attack: Label = $HudLayer/StructureInfoPanel/Margin/VBox/AttackType
@@ -46,6 +48,9 @@ enum MacroTool { NONE, DIG, BUILD }
 @onready var _add_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/AddBtn
 @onready var _remove_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/RemoveBtn
 @onready var _close_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/CloseBtn
+@onready var _mine_info: Label = $HudLayer/MineMenu/VBox/Info
+@onready var _mine_rearm_btn: Button = $HudLayer/MineMenu/VBox/Buttons/RearmBtn
+@onready var _mine_close_btn: Button = $HudLayer/MineMenu/VBox/Buttons/CloseBtn
 @onready var _dig_btn: ActionToolButton = $HudLayer/ToolBarPanel/ToolBar/ActionsBar/DigBtn
 @onready var _build_btn: ActionToolButton = $HudLayer/ToolBarPanel/ToolBar/ActionsBar/BuildBtn
 @onready var _structure_gap: Control = $HudLayer/ToolBarPanel/ToolBar/StructureGap
@@ -77,6 +82,7 @@ var _mine_sprites: Dictionary = {}
 var _projectile_sprites: Dictionary = {}
 var _dig_progress_labels: Dictionary = {}
 var _selected_tower: Dictionary = {}
+var _selected_mine: Dictionary = {}
 var _textures: Dictionary = {}
 var _macro_tileset
 var _terrain_painter
@@ -94,6 +100,7 @@ func _ready() -> void:
 	_load_textures()
 	_make_preview_textures()
 	tower_menu.visible = false
+	mine_menu.visible = false
 	structure_info_panel.visible = false
 	_apply_hud_theme()
 	_setup_world_ui()
@@ -108,7 +115,7 @@ func _apply_hud_theme() -> void:
 	var theme := _resolve_game_theme()
 	if not theme:
 		return
-	for node in [_toolbar_panel, tower_menu, structure_info_panel]:
+	for node in [_toolbar_panel, tower_menu, mine_menu, structure_info_panel]:
 		node.theme = theme
 
 
@@ -141,6 +148,8 @@ func _wire_signals() -> void:
 	GameState.tower_placed.connect(func(_t): _refresh_dig_hints())
 	GameState.mine_placed.connect(_on_mine_placed)
 	GameState.mine_triggered.connect(_on_mine_triggered)
+	GameState.mine_rearm_started.connect(_on_mine_rearm_started)
+	GameState.mine_rearmed.connect(_on_mine_rearmed)
 	GameState.dig_started.connect(func(_c): _refresh_dig_overlays())
 	GameState.dig_completed.connect(_on_dig_completed)
 	GameState.cells_changed.connect(_on_cell_changed)
@@ -152,6 +161,8 @@ func _wire_signals() -> void:
 	_add_btn.pressed.connect(_on_add_soldier)
 	_remove_btn.pressed.connect(_on_remove_soldier)
 	_close_btn.pressed.connect(_hide_tower_menu)
+	_mine_rearm_btn.pressed.connect(_on_rearm_mine)
+	_mine_close_btn.pressed.connect(_hide_mine_menu)
 	_dig_btn.pressed.connect(_on_dig_pressed)
 	_build_btn.pressed.connect(_on_build_pressed)
 
@@ -180,6 +191,7 @@ func _clear_children(node: Node) -> void:
 
 func _load_level() -> void:
 	_hide_tower_menu()
+	_hide_mine_menu()
 	_active_tool = MacroTool.NONE
 	_selected_structure = ""
 	_enemy_sprites.clear()
@@ -489,6 +501,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.keycode == KEY_ESCAPE:
 			_clear_structure_selection()
 			_hide_tower_menu()
+			_hide_mine_menu()
 			return
 		if GameState.is_playing():
 			match event.keycode:
@@ -514,9 +527,16 @@ func handle_world_click(world_pos: Vector2) -> void:
 	var cell := _pathfinding.world_to_tile(world_pos)
 	var tower := GameState.get_tower_at(cell)
 	if not tower.is_empty():
+		_hide_mine_menu()
 		_show_tower_menu(tower, world_pos)
 		return
+	var mine := GameState.get_mine_at(cell)
+	if not mine.is_empty():
+		_hide_tower_menu()
+		_show_mine_menu(mine, world_pos)
+		return
 	_hide_tower_menu()
+	_hide_mine_menu()
 	if not GameState.is_playing():
 		return
 	if _active_tool == MacroTool.DIG:
@@ -587,6 +607,7 @@ func _measure_toolbar_size() -> Vector2:
 func _apply_toolbar_styles() -> void:
 	_toolbar_panel.add_theme_stylebox_override("panel", HudThemeRes.toolbar_panel())
 	_apply_tower_menu_styles()
+	_apply_mine_menu_styles()
 	_apply_structure_info_styles()
 	if _build_feedback:
 		HudThemeRes.apply_pixel_label(_build_feedback, HudThemeRes.FONT_CAPTION)
@@ -601,6 +622,14 @@ func _apply_tower_menu_styles() -> void:
 	for btn in [_add_btn, _remove_btn]:
 		HudThemeRes.apply_toolbar_text_button(btn, HudThemeRes.SECONDARY)
 	HudThemeRes.apply_toolbar_text_button(_close_btn, HudThemeRes.ON_SURFACE_VARIANT)
+
+
+func _apply_mine_menu_styles() -> void:
+	mine_menu.add_theme_stylebox_override("panel", HudThemeRes.ant_strip())
+	HudThemeRes.apply_pixel_label(_mine_info, HudThemeRes.FONT_CAPTION)
+	_mine_info.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE)
+	HudThemeRes.apply_toolbar_text_button(_mine_rearm_btn, HudThemeRes.SECONDARY)
+	HudThemeRes.apply_toolbar_text_button(_mine_close_btn, HudThemeRes.ON_SURFACE_VARIANT)
 
 
 func _apply_structure_info_styles() -> void:
@@ -667,6 +696,57 @@ func _hide_tower_menu() -> void:
 	tower_menu.visible = false
 	_selected_tower = {}
 	_hide_range_indicator()
+
+
+func _show_mine_menu(mine: Dictionary, world_pos: Vector2) -> void:
+	_selected_mine = mine
+	mine_menu.visible = true
+	call_deferred("_position_mine_menu", world_pos)
+	_refresh_mine_menu()
+
+
+func _position_mine_menu(world_pos: Vector2) -> void:
+	var screen := _world_to_screen(world_pos)
+	var vp := get_viewport().get_visible_rect().size
+	mine_menu.position = Vector2(
+		clampf(screen.x + 8.0, 8.0, vp.x - mine_menu.size.x - 8.0),
+		clampf(screen.y - 48.0, 8.0, vp.y - mine_menu.size.y - 8.0),
+	)
+
+
+func _refresh_mine_menu() -> void:
+	if _selected_mine.is_empty():
+		return
+	var label: String = BUILD_LABELS.get("mine", "Fungal mine")
+	if _selected_mine.armed:
+		_mine_info.text = "%s — armed" % label
+	elif GameState.is_rearming_mine(_selected_mine.id):
+		_mine_info.text = "%s — rearming…" % label
+	else:
+		_mine_info.text = "%s — spent" % label
+	_mine_rearm_btn.disabled = (
+		_selected_mine.armed
+		or GameState.is_rearming_mine(_selected_mine.id)
+		or not GameState.is_playing()
+	)
+
+
+func _hide_mine_menu() -> void:
+	mine_menu.visible = false
+	_selected_mine = {}
+
+
+func _on_rearm_mine() -> void:
+	if _selected_mine.is_empty():
+		return
+	var err := GameState.start_mine_rearm(_selected_mine)
+	if err != "":
+		_show_build_feedback(err)
+		return
+	_show_build_feedback(
+		"Rearming mine… %ds." % int(GameTuning.MINE_REARM_DURATION)
+	)
+	_refresh_mine_menu()
 
 
 func _on_add_soldier() -> void:
@@ -813,27 +893,41 @@ func _update_dig_progress_labels() -> void:
 		return
 	var live: Dictionary = {}
 	for job in GameState.dig_jobs:
-		var key := "%d,%d" % [job.cell_x, job.cell_y]
+		var key := "dig,%d,%d" % [job.cell_x, job.cell_y]
 		live[key] = true
-		var label: Label
-		if _dig_progress_labels.has(key):
-			label = _dig_progress_labels[key]
-		else:
-			label = Label.new()
-			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.55))
-			label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
-			label.add_theme_constant_override("outline_size", 3)
-			_dig_progress_root.add_child(label)
-			_dig_progress_labels[key] = label
+		var label: Label = _ensure_progress_label(key)
 		var center := _pathfinding.tile_center(Vector2i(job.cell_x, job.cell_y))
 		label.position = center + Vector2(-16, -8)
 		var pct := int((float(job.progress) / float(job.duration)) * 100.0)
 		label.text = "Dig %d%%" % pct
+	for job in GameState.mine_rearm_jobs:
+		var mine := GameState.get_mine_by_id(int(job.mine_id))
+		if mine.is_empty():
+			continue
+		var key := "mine,%d" % mine.id
+		live[key] = true
+		var label: Label = _ensure_progress_label(key)
+		var center := _pathfinding.tile_center(Vector2i(mine.tile_x, mine.tile_y))
+		label.position = center + Vector2(-20, -8)
+		var pct := int((float(job.progress) / float(job.duration)) * 100.0)
+		label.text = "Rearm %d%%" % pct
 	for key in _dig_progress_labels.keys():
 		if not live.has(key):
 			_dig_progress_labels[key].queue_free()
 			_dig_progress_labels.erase(key)
+
+
+func _ensure_progress_label(key: String) -> Label:
+	if _dig_progress_labels.has(key):
+		return _dig_progress_labels[key]
+	var label := Label.new()
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.55))
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	label.add_theme_constant_override("outline_size", 3)
+	_dig_progress_root.add_child(label)
+	_dig_progress_labels[key] = label
+	return label
 
 
 func _on_dig_completed(cell: Vector2i) -> void:
@@ -1035,6 +1129,15 @@ func _sync_combat_effects() -> void:
 				line.add_point(Vector2(effect.x, effect.y))
 				line.add_point(Vector2(effect.tx, effect.ty))
 				_effects_root.add_child(line)
+			"spitter_splat":
+				var splat_frames := ProjectileSprites.spitter_splat_sprite_frames()
+				var elapsed := max_life - float(effect.life)
+				var frame_idx := ProjectileSprites.spitter_splat_frame_index(elapsed)
+				var splat := Sprite2D.new()
+				splat.texture = splat_frames.get_frame_texture(&"splat", frame_idx)
+				splat.centered = true
+				splat.position = Vector2(effect.x, effect.y)
+				_effects_root.add_child(splat)
 
 
 func _on_mine_placed(mine: Dictionary) -> void:
@@ -1043,6 +1146,22 @@ func _on_mine_placed(mine: Dictionary) -> void:
 
 func _on_mine_triggered(mine: Dictionary) -> void:
 	_sync_mine_sprite(mine)
+	if mine_menu.visible and not _selected_mine.is_empty() and _selected_mine.id == mine.id:
+		_refresh_mine_menu()
+
+
+func _on_mine_rearm_started(mine: Dictionary) -> void:
+	_sync_mine_sprite(mine)
+	_refresh_dig_overlays()
+	if mine_menu.visible and not _selected_mine.is_empty() and _selected_mine.id == mine.id:
+		_refresh_mine_menu()
+
+
+func _on_mine_rearmed(mine: Dictionary) -> void:
+	_sync_mine_sprite(mine)
+	_refresh_dig_overlays()
+	if mine_menu.visible and not _selected_mine.is_empty() and _selected_mine.id == mine.id:
+		_refresh_mine_menu()
 
 
 func _sync_mine_sprite(mine: Dictionary) -> void:
@@ -1058,7 +1177,12 @@ func _sync_mine_sprite(mine: Dictionary) -> void:
 		_mine_sprites[id] = anim
 	var sprite: AnimatedSprite2D = _mine_sprites[id]
 	sprite.position = center
-	sprite.modulate = Color.WHITE if mine.armed else Color(0.45, 0.45, 0.45, 0.7)
+	if GameState.is_rearming_mine(mine.id):
+		sprite.modulate = Color(0.95, 0.78, 0.42)
+	elif mine.armed:
+		sprite.modulate = Color.WHITE
+	else:
+		sprite.modulate = Color(0.45, 0.45, 0.45, 0.7)
 
 
 func _sync_enemy_positions() -> void:
@@ -1077,23 +1201,36 @@ func _sync_enemy_positions() -> void:
 
 func _sync_projectiles() -> void:
 	var dot_size := maxi(6, int(GameTuning.TILE_SIZE * 0.375))
-	var half := dot_size * 0.5
 	var live: Dictionary = {}
 	for proj in GameState.projectiles:
 		live[proj.id] = true
-		var color: Color = TowerSprites.projectile_color(str(proj.get("type", "spitter")))
+		var proj_type := str(proj.get("type", "spitter"))
 		if not _projectile_sprites.has(proj.id):
-			var dot := ColorRect.new()
-			dot.size = Vector2(dot_size, dot_size)
-			dot.color = color
-			dot.position = Vector2(proj.x - half, proj.y - half)
-			projectiles_root.add_child(dot)
-			_projectile_sprites[proj.id] = dot
-		else:
-			var dot: ColorRect = _projectile_sprites[proj.id]
-			dot.color = color
-			dot.position = Vector2(proj.x - half, proj.y - half)
+			var sprite := _make_projectile_sprite(proj_type, dot_size)
+			projectiles_root.add_child(sprite)
+			_projectile_sprites[proj.id] = sprite
+		_update_projectile_sprite_position(_projectile_sprites[proj.id], proj)
 	for id in _projectile_sprites.keys():
 		if not live.has(id):
 			_projectile_sprites[id].queue_free()
 			_projectile_sprites.erase(id)
+
+
+func _make_projectile_sprite(proj_type: String, dot_size: int) -> Node2D:
+	if proj_type == "spitter":
+		var anim := AnimatedSprite2D.new()
+		anim.sprite_frames = ProjectileSprites.spitter_sprite_frames()
+		anim.animation = &"fly"
+		anim.play()
+		anim.centered = true
+		return anim
+	var image := Image.create(dot_size, dot_size, false, Image.FORMAT_RGBA8)
+	image.fill(TowerSprites.projectile_color(proj_type))
+	var sprite := Sprite2D.new()
+	sprite.texture = ImageTexture.create_from_image(image)
+	sprite.centered = true
+	return sprite
+
+
+func _update_projectile_sprite_position(sprite: Node2D, proj: Dictionary) -> void:
+	sprite.position = Vector2(float(proj.x), float(proj.y))

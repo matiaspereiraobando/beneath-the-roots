@@ -65,6 +65,14 @@ static func enemy_static(enemy_type: String) -> String:
 	return "res://assets/sprites/enemies/%s/static.png" % enemy_type
 
 
+static func spitter_projectile_sheet() -> String:
+	return "res://assets/sprites/projectiles/spitter_sheet.png"
+
+
+static func spitter_splat_sheet() -> String:
+	return "res://assets/sprites/projectiles/spitter_splat_sheet.png"
+
+
 static func micro_background() -> String:
 	var v2 := "res://assets/micro/nursery_background_v2.png"
 	if ResourceLoader.exists(v2):

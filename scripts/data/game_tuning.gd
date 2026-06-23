@@ -45,6 +45,7 @@ const TOWER_COSTS := {
 const MINE_COST := 25
 const MINE_DAMAGE := 40
 const MINE_TRIGGER_RADIUS := 20.0
+const MINE_REARM_DURATION := 3.0
 
 const TOWER_STATS := {
 	"spitter": {

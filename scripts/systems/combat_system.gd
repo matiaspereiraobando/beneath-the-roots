@@ -2,6 +2,7 @@ extends RefCounted
 class_name CombatSystem
 
 const PlacementRules = preload("res://scripts/systems/placement.gd")
+const ProjectileSprites = preload("res://scripts/util/projectile_sprites.gd")
 
 var pathfinding: GridPathfinding
 var _tower_cooldowns: Dictionary = {}
@@ -214,6 +215,13 @@ func _update_projectiles(delta: float) -> void:
 		proj.x = float(proj.x) + dir.x * step
 		proj.y = float(proj.y) + dir.y * step
 		if Vector2(float(proj.x), float(proj.y)).distance_to(target_pos) < 8.0:
+			if str(proj.get("type", "")) == "spitter":
+				GameState.add_combat_effect({
+					"type": "spitter_splat",
+					"x": float(proj.x),
+					"y": float(proj.y),
+					"max_life": ProjectileSprites.spitter_splat_duration(),
+				})
 			target.hp = float(target.hp) - float(proj.damage)
 			to_remove.append(proj)
 			if target.hp <= 0:
