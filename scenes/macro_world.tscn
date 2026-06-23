@@ -59,6 +59,42 @@ visible = false
 layout_mode = 2
 theme_override_constants/separation = 4
 
+[node name="StructureInfoPanel" type="PanelContainer" parent="HudLayer"]
+visible = false
+custom_minimum_size = Vector2(216, 0)
+offset_right = 216.0
+offset_bottom = 120.0
+theme_type_variation = &"GameHud"
+
+[node name="Margin" type="MarginContainer" parent="HudLayer/StructureInfoPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="HudLayer/StructureInfoPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="HudLayer/StructureInfoPanel/Margin/VBox"]
+layout_mode = 2
+text = "Spitter"
+
+[node name="AttackType" type="Label" parent="HudLayer/StructureInfoPanel/Margin/VBox"]
+layout_mode = 2
+text = "Single target"
+
+[node name="Description" type="Label" parent="HudLayer/StructureInfoPanel/Margin/VBox"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+autowrap_mode = 3
+text = "Description"
+
+[node name="Stats" type="Label" parent="HudLayer/StructureInfoPanel/Margin/VBox"]
+layout_mode = 2
+text = "Stats"
+
 [node name="TowerMenu" type="PanelContainer" parent="HudLayer"]
 visible = false
 offset_right = 140.0

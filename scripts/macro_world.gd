@@ -4,6 +4,7 @@ const MacroCell = preload("res://scripts/data/macro_tiles.gd").Cell
 const TowerSprites = preload("res://scripts/util/tower_sprites.gd")
 const EnemySprites = preload("res://scripts/util/enemy_sprites.gd")
 const PlacementRules = preload("res://scripts/systems/placement.gd")
+const TowerCatalog = preload("res://scripts/data/tower_catalog.gd")
 const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
 const SpritePaths = preload("res://scripts/util/sprite_paths.gd")
 const ActionToolButton = preload("res://scripts/ui/action_tool_button.gd")
@@ -19,6 +20,7 @@ const BUILD_LABELS := {
 }
 const TOOLBAR_EDGE_MARGIN := 8
 const TOOLBAR_SECTION_GAP := 16
+const STRUCTURE_INFO_GAP := 8
 const TOWER_RANGE_COLORS := {
 	"spitter": Color(0.45, 0.75, 0.35, 0.9),
 	"crusher": Color(0.85, 0.55, 0.35, 0.9),
@@ -35,6 +37,11 @@ enum MacroTool { NONE, DIG, BUILD }
 @onready var towers_root: Node2D = $Towers
 @onready var projectiles_root: Node2D = $Projectiles
 @onready var tower_menu: PanelContainer = $HudLayer/TowerMenu
+@onready var structure_info_panel: PanelContainer = $HudLayer/StructureInfoPanel
+@onready var _structure_info_title: Label = $HudLayer/StructureInfoPanel/Margin/VBox/Title
+@onready var _structure_info_attack: Label = $HudLayer/StructureInfoPanel/Margin/VBox/AttackType
+@onready var _structure_info_desc: Label = $HudLayer/StructureInfoPanel/Margin/VBox/Description
+@onready var _structure_info_stats: Label = $HudLayer/StructureInfoPanel/Margin/VBox/Stats
 @onready var _tower_info: Label = $HudLayer/TowerMenu/VBox/Info
 @onready var _add_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/AddBtn
 @onready var _remove_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/RemoveBtn
@@ -87,6 +94,7 @@ func _ready() -> void:
 	_load_textures()
 	_make_preview_textures()
 	tower_menu.visible = false
+	structure_info_panel.visible = false
 	_apply_hud_theme()
 	_setup_world_ui()
 	_setup_toolbar()
@@ -100,7 +108,7 @@ func _apply_hud_theme() -> void:
 	var theme := _resolve_game_theme()
 	if not theme:
 		return
-	for node in [_toolbar_panel, tower_menu]:
+	for node in [_toolbar_panel, tower_menu, structure_info_panel]:
 		node.theme = theme
 
 
@@ -297,6 +305,7 @@ func _on_phase_changed(phase: GameState.Phase) -> void:
 	_update_toolbar_visuals()
 	_update_tool_hint()
 	_sync_gland_auras()
+	_refresh_structure_info_panel()
 	for tower in GameState.towers:
 		if _tower_sprites.has(tower.id):
 			_tower_sprites[tower.id].modulate = Color.WHITE
@@ -360,6 +369,36 @@ func _update_toolbar_visuals() -> void:
 		var is_selected: bool = _selected_structure == type and _active_tool == MacroTool.BUILD
 		btn.set_pressed_no_signal(is_selected)
 	call_deferred("_sync_toolbar_layout")
+	_refresh_structure_info_panel()
+
+
+func _refresh_structure_info_panel() -> void:
+	if structure_info_panel == null:
+		return
+	var show := GameState.is_playing() and _active_tool == MacroTool.BUILD and _selected_structure != ""
+	structure_info_panel.visible = show
+	if not show:
+		return
+	var type := _selected_structure
+	_structure_info_title.text = TowerCatalog.display_name(type)
+	_structure_info_attack.text = TowerCatalog.attack_type(type)
+	_structure_info_desc.text = TowerCatalog.description(type)
+	_structure_info_stats.text = "\n".join(TowerCatalog.stat_lines(type))
+	call_deferred("_sync_structure_info_layout")
+
+
+func _sync_structure_info_layout() -> void:
+	if structure_info_panel == null or not structure_info_panel.visible:
+		return
+	if not is_instance_valid(_toolbar_panel):
+		return
+	structure_info_panel.reset_size()
+	var panel_size := structure_info_panel.get_combined_minimum_size()
+	structure_info_panel.size = panel_size
+	structure_info_panel.position = Vector2(
+		_toolbar_panel.position.x,
+		maxf(TOOLBAR_EDGE_MARGIN, _toolbar_panel.position.y - STRUCTURE_INFO_GAP - panel_size.y),
+	)
 
 
 func _update_tool_hint() -> void:
@@ -532,6 +571,7 @@ func _sync_toolbar_layout() -> void:
 	_toolbar_panel.size = panel_size
 	var vp := get_viewport().get_visible_rect().size
 	_toolbar_panel.position = Vector2(TOOLBAR_EDGE_MARGIN, vp.y - TOOLBAR_EDGE_MARGIN - panel_size.y)
+	_sync_structure_info_layout()
 
 
 func _measure_toolbar_size() -> Vector2:
@@ -547,6 +587,7 @@ func _measure_toolbar_size() -> Vector2:
 func _apply_toolbar_styles() -> void:
 	_toolbar_panel.add_theme_stylebox_override("panel", HudThemeRes.toolbar_panel())
 	_apply_tower_menu_styles()
+	_apply_structure_info_styles()
 	if _build_feedback:
 		HudThemeRes.apply_pixel_label(_build_feedback, HudThemeRes.FONT_CAPTION)
 		_build_feedback.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE_VARIANT)
@@ -560,6 +601,18 @@ func _apply_tower_menu_styles() -> void:
 	for btn in [_add_btn, _remove_btn]:
 		HudThemeRes.apply_toolbar_text_button(btn, HudThemeRes.SECONDARY)
 	HudThemeRes.apply_toolbar_text_button(_close_btn, HudThemeRes.ON_SURFACE_VARIANT)
+
+
+func _apply_structure_info_styles() -> void:
+	structure_info_panel.add_theme_stylebox_override("panel", HudThemeRes.game_hud_panel())
+	HudThemeRes.apply_pixel_label(_structure_info_title, HudThemeRes.FONT_STAT)
+	_structure_info_title.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE)
+	HudThemeRes.apply_pixel_label(_structure_info_attack, HudThemeRes.FONT_CAPTION)
+	_structure_info_attack.add_theme_color_override("font_color", HudThemeRes.PRIMARY)
+	HudThemeRes.apply_pixel_label(_structure_info_desc, HudThemeRes.FONT_CAPTION)
+	_structure_info_desc.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE_VARIANT)
+	HudThemeRes.apply_pixel_label(_structure_info_stats, HudThemeRes.FONT_CAPTION)
+	_structure_info_stats.add_theme_color_override("font_color", HudThemeRes.SECONDARY)
 
 
 func _on_structure_button(type: String) -> void:
