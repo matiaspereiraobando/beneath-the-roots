@@ -3,9 +3,12 @@ extends Node2D
 const MacroCell = preload("res://scripts/data/macro_tiles.gd").Cell
 const TowerSprites = preload("res://scripts/util/tower_sprites.gd")
 const ProjectileSprites = preload("res://scripts/util/projectile_sprites.gd")
+const ScaffoldSprites = preload("res://scripts/util/scaffold_sprites.gd")
 const EnemySprites = preload("res://scripts/util/enemy_sprites.gd")
 const PlacementRules = preload("res://scripts/systems/placement.gd")
 const TowerCatalog = preload("res://scripts/data/tower_catalog.gd")
+const TowerCombatStats = preload("res://scripts/data/tower_combat_stats.gd")
+const SoldierSlotButton = preload("res://scripts/ui/soldier_slot_button.gd")
 const HudThemeRes = preload("res://scripts/util/hud_theme.gd")
 const SpritePaths = preload("res://scripts/util/sprite_paths.gd")
 const ActionToolButton = preload("res://scripts/ui/action_tool_button.gd")
@@ -44,10 +47,11 @@ enum MacroTool { NONE, DIG, BUILD }
 @onready var _structure_info_attack: Label = $HudLayer/StructureInfoPanel/Margin/VBox/AttackType
 @onready var _structure_info_desc: Label = $HudLayer/StructureInfoPanel/Margin/VBox/Description
 @onready var _structure_info_stats: Label = $HudLayer/StructureInfoPanel/Margin/VBox/Stats
-@onready var _tower_info: Label = $HudLayer/TowerMenu/VBox/Info
-@onready var _add_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/AddBtn
-@onready var _remove_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/RemoveBtn
-@onready var _close_btn: Button = $HudLayer/TowerMenu/VBox/Buttons/CloseBtn
+@onready var _tower_title: Label = $HudLayer/TowerMenu/Margin/VBox/Title
+@onready var _tower_stats: RichTextLabel = $HudLayer/TowerMenu/Margin/VBox/Stats
+@onready var _add_btn: SoldierSlotButton = $HudLayer/TowerMenu/Margin/VBox/Buttons/AddBtn
+@onready var _remove_btn: SoldierSlotButton = $HudLayer/TowerMenu/Margin/VBox/Buttons/RemoveBtn
+@onready var _close_btn: Button = $HudLayer/TowerMenu/Margin/VBox/Buttons/CloseBtn
 @onready var _mine_info: Label = $HudLayer/MineMenu/VBox/Info
 @onready var _mine_rearm_btn: Button = $HudLayer/MineMenu/VBox/Buttons/RearmBtn
 @onready var _mine_close_btn: Button = $HudLayer/MineMenu/VBox/Buttons/CloseBtn
@@ -62,6 +66,7 @@ var _range_indicator_root: Node2D
 var _preview_root: Node2D
 var _dig_progress_root: Node2D
 var _mines_root: Node2D
+var _scaffolds_root: Node2D
 var _effects_root: Node2D
 var _build_feedback: Label
 var _feedback_timer: float = 0.0
@@ -79,6 +84,7 @@ var _enemy_sprites: Dictionary = {}
 var _tower_sprites: Dictionary = {}
 var _gland_aura_sprites: Dictionary = {}
 var _mine_sprites: Dictionary = {}
+var _scaffold_sprites: Dictionary = {}
 var _projectile_sprites: Dictionary = {}
 var _dig_progress_labels: Dictionary = {}
 var _selected_tower: Dictionary = {}
@@ -109,6 +115,7 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_sync_toolbar_layout)
 	call_deferred("_sync_toolbar_layout")
 	call_deferred("_bootstrap_level")
+	call_deferred("_setup_tower_menu_buttons")
 
 
 func _apply_hud_theme() -> void:
@@ -152,12 +159,16 @@ func _wire_signals() -> void:
 	GameState.mine_rearmed.connect(_on_mine_rearmed)
 	GameState.dig_started.connect(func(_c): _refresh_dig_overlays())
 	GameState.dig_completed.connect(_on_dig_completed)
+	GameState.structure_build_started.connect(_on_structure_build_started)
+	GameState.structure_build_completed.connect(_on_structure_build_completed)
 	GameState.cells_changed.connect(_on_cell_changed)
 	GameState.phase_changed.connect(_on_phase_changed)
 	GameState.projectiles_changed.connect(_sync_projectiles)
 	GameState.combat_effects_changed.connect(_sync_combat_effects)
 	GameState.tower_fired.connect(_on_tower_fired)
 	GameState.soldiers_changed.connect(_on_soldiers_changed)
+	GameState.queen_satiety_changed.connect(_on_queen_satiety_changed)
+	GameState.tower_placed.connect(_on_any_tower_placed_for_menu)
 	_add_btn.pressed.connect(_on_add_soldier)
 	_remove_btn.pressed.connect(_on_remove_soldier)
 	_close_btn.pressed.connect(_hide_tower_menu)
@@ -198,6 +209,7 @@ func _load_level() -> void:
 	_tower_sprites.clear()
 	_gland_aura_sprites.clear()
 	_mine_sprites.clear()
+	_scaffold_sprites.clear()
 	_projectile_sprites.clear()
 	_dig_progress_labels.clear()
 	_clear_children(enemies_root)
@@ -205,6 +217,8 @@ func _load_level() -> void:
 	_clear_children(projectiles_root)
 	if _mines_root:
 		_clear_children(_mines_root)
+	if _scaffolds_root:
+		_clear_children(_scaffolds_root)
 	if _effects_root:
 		_clear_children(_effects_root)
 	_macro_tileset = load("res://scripts/util/macro_tileset.gd").new()
@@ -305,6 +319,7 @@ func _process(delta: float) -> void:
 	GameState.tick_combat_effects(delta)
 	_tick_build_feedback(delta)
 	_update_dig_progress_labels()
+	_sync_build_scaffolds()
 	_sync_combat_effects()
 	_update_gland_pulse(delta)
 	_sync_enemy_positions()
@@ -558,7 +573,8 @@ func handle_world_click(world_pos: Vector2) -> void:
 		_show_build_feedback(err)
 	else:
 		var label: String = BUILD_LABELS.get(_selected_structure, _selected_structure)
-		_show_build_feedback("%s placed!" % label)
+		var build_secs := int(GameTuning.structure_build_duration(_selected_structure))
+		_show_build_feedback("Building %s… %ds." % [label, build_secs])
 
 
 func _setup_toolbar() -> void:
@@ -615,12 +631,17 @@ func _apply_toolbar_styles() -> void:
 		_build_feedback.add_theme_color_override("font_outline_color", Color.BLACK)
 
 
+func _setup_tower_menu_buttons() -> void:
+	_add_btn.setup_from_sheet(SpritePaths.soldier_up_button_sheet())
+	_remove_btn.setup_from_sheet(SpritePaths.soldier_down_button_sheet())
+
+
 func _apply_tower_menu_styles() -> void:
 	tower_menu.add_theme_stylebox_override("panel", HudThemeRes.ant_strip())
-	HudThemeRes.apply_pixel_label(_tower_info, HudThemeRes.FONT_CAPTION)
-	_tower_info.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE)
-	for btn in [_add_btn, _remove_btn]:
-		HudThemeRes.apply_toolbar_text_button(btn, HudThemeRes.SECONDARY)
+	HudThemeRes.apply_pixel_label(_tower_title, HudThemeRes.FONT_CAPTION)
+	_tower_title.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE)
+	HudThemeRes.apply_pixel_font(_tower_stats, HudThemeRes.FONT_CAPTION)
+	_tower_stats.add_theme_color_override("default_color", HudThemeRes.SECONDARY)
 	HudThemeRes.apply_toolbar_text_button(_close_btn, HudThemeRes.ON_SURFACE_VARIANT)
 
 
@@ -671,24 +692,32 @@ func _position_tower_menu(world_pos: Vector2) -> void:
 func _refresh_tower_menu() -> void:
 	if _selected_tower.is_empty():
 		return
-	var label: String = BUILD_LABELS.get(_selected_tower.type, _selected_tower.type)
+	_tower_title.text = TowerCombatStats.menu_title(_selected_tower)
+	_tower_stats.text = TowerCombatStats.menu_stats_bbcode(_selected_tower, _pathfinding)
 	if _selected_tower.type == "gland":
-		_tower_info.text = "%s (aura support)" % label
 		_add_btn.disabled = true
 		_remove_btn.disabled = true
 		return
-	_tower_info.text = "%s  Soldiers: %d/%d" % [
-		label, _selected_tower.soldiers, GameTuning.TOWER_BASE_SLOTS
-	]
 	_add_btn.disabled = (
 		_selected_tower.soldiers >= GameTuning.TOWER_BASE_SLOTS
 		or GameState.free_soldiers <= 0
 	)
 	_remove_btn.disabled = _selected_tower.soldiers <= 0
+	tower_menu.reset_size()
 
 
 func _on_soldiers_changed(_count: int) -> void:
 	if tower_menu.visible:
+		_refresh_tower_menu()
+
+
+func _on_queen_satiety_changed(_value: float) -> void:
+	if tower_menu.visible and _selected_tower.type != "gland":
+		_refresh_tower_menu()
+
+
+func _on_any_tower_placed_for_menu(_tower: Dictionary) -> void:
+	if tower_menu.visible and _selected_tower.type != "gland":
 		_refresh_tower_menu()
 
 
@@ -798,6 +827,10 @@ func _setup_world_ui() -> void:
 	_mines_root.name = "Mines"
 	_mines_root.z_index = 4
 	add_child(_mines_root)
+	_scaffolds_root = Node2D.new()
+	_scaffolds_root.name = "Scaffolds"
+	_scaffolds_root.z_index = 5
+	add_child(_scaffolds_root)
 	_effects_root = Node2D.new()
 	_effects_root.name = "CombatEffects"
 	_effects_root.z_index = 7
@@ -911,6 +944,17 @@ func _update_dig_progress_labels() -> void:
 		label.position = center + Vector2(-20, -8)
 		var pct := int((float(job.progress) / float(job.duration)) * 100.0)
 		label.text = "Rearm %d%%" % pct
+	for job in GameState.build_jobs:
+		var key := "build,%d" % int(job.id)
+		live[key] = true
+		var label: Label = _ensure_progress_label(key)
+		var anchor := Vector2i(int(job.tile_x), int(job.tile_y))
+		var size := Vector2i(int(job.width), int(job.height))
+		var center := PlacementRules.structure_world_center(anchor, size, _pathfinding)
+		var y_offset := -8.0 if str(job.kind) == "mine" else -36.0
+		label.position = center + Vector2(-20, y_offset)
+		var pct := int((float(job.progress) / float(job.duration)) * 100.0)
+		label.text = "Build %d%%" % pct
 	for key in _dig_progress_labels.keys():
 		if not live.has(key):
 			_dig_progress_labels[key].queue_free()
@@ -939,6 +983,65 @@ func _on_dig_completed(cell: Vector2i) -> void:
 	_refresh_dig_hints()
 	_refresh_dig_overlays()
 	_show_build_feedback("Tunnel opened — enemies will reroute.")
+
+
+func _on_structure_build_started(job: Dictionary) -> void:
+	_refresh_build_site_terrain(job)
+	_refresh_dig_overlays()
+	_sync_build_scaffolds()
+
+
+func _on_structure_build_completed(job: Dictionary) -> void:
+	_refresh_build_site_terrain(job)
+	_refresh_dig_overlays()
+	_sync_build_scaffolds()
+
+
+func _refresh_build_site_terrain(job: Dictionary) -> void:
+	if str(job.get("kind", "")) != "tower":
+		return
+	var anchor := Vector2i(int(job.tile_x), int(job.tile_y))
+	var size := Vector2i(int(job.width), int(job.height))
+	for foot_cell in PlacementRules.footprint_cells(anchor, size):
+		_terrain_painter.refresh_region(
+			terrain, GameState.level_data.cells, foot_cell, 1, _macro_tileset
+		)
+
+
+func _sync_build_scaffolds() -> void:
+	if _scaffolds_root == null:
+		return
+	var live: Dictionary = {}
+	for job in GameState.build_jobs:
+		if str(job.get("kind", "")) != "tower":
+			continue
+		var job_id := int(job.id)
+		live[job_id] = true
+		if not _scaffold_sprites.has(job_id):
+			var anim := AnimatedSprite2D.new()
+			anim.sprite_frames = ScaffoldSprites.make_sprite_frames()
+			anim.animation = &"build"
+			anim.play()
+			anim.centered = true
+			_scaffolds_root.add_child(anim)
+			_scaffold_sprites[job_id] = anim
+		var anchor := Vector2i(int(job.tile_x), int(job.tile_y))
+		var size := Vector2i(int(job.width), int(job.height))
+		var sprite: AnimatedSprite2D = _scaffold_sprites[job_id]
+		sprite.position = PlacementRules.structure_world_center(anchor, size, _pathfinding)
+		sprite.scale = _scaffold_sprite_scale(size)
+	for job_id in _scaffold_sprites.keys():
+		if not live.has(job_id):
+			_scaffold_sprites[job_id].queue_free()
+			_scaffold_sprites.erase(job_id)
+
+
+func _scaffold_sprite_scale(footprint: Vector2i) -> Vector2:
+	var footprint_px := Vector2(
+		float(footprint.x) * GameTuning.TILE_SIZE,
+		float(footprint.y) * GameTuning.TILE_SIZE,
+	)
+	return Vector2(footprint_px.x / 64.0, footprint_px.y / 64.0)
 
 
 func _on_cell_changed(cell: Vector2i) -> void:
@@ -1129,6 +1232,15 @@ func _sync_combat_effects() -> void:
 				line.add_point(Vector2(effect.x, effect.y))
 				line.add_point(Vector2(effect.tx, effect.ty))
 				_effects_root.add_child(line)
+			"mine_explode":
+				var explode_frames := TowerSprites.mine_explode_sprite_frames()
+				var elapsed := max_life - float(effect.life)
+				var frame_idx := TowerSprites.mine_explode_frame_index(elapsed)
+				var burst := Sprite2D.new()
+				burst.texture = explode_frames.get_frame_texture(&"explode", frame_idx)
+				burst.centered = true
+				burst.position = Vector2(effect.x, effect.y)
+				_effects_root.add_child(burst)
 			"spitter_splat":
 				var splat_frames := ProjectileSprites.spitter_splat_sprite_frames()
 				var elapsed := max_life - float(effect.life)
@@ -1177,6 +1289,7 @@ func _sync_mine_sprite(mine: Dictionary) -> void:
 		_mine_sprites[id] = anim
 	var sprite: AnimatedSprite2D = _mine_sprites[id]
 	sprite.position = center
+	sprite.visible = mine.armed or GameState.is_rearming_mine(mine.id)
 	if GameState.is_rearming_mine(mine.id):
 		sprite.modulate = Color(0.95, 0.78, 0.42)
 	elif mine.armed:

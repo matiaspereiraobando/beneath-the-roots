@@ -15,6 +15,7 @@ func update(delta: float) -> void:
 	_tick_queen_spawn(delta)
 	_tick_gatherers(delta)
 	_tick_dig_jobs(delta)
+	_tick_build_jobs(delta)
 	_tick_mine_rearm_jobs(delta)
 	if GameState.invasion_active():
 		GameState.try_auto_feed()
@@ -63,6 +64,18 @@ func _tick_dig_jobs(delta: float) -> void:
 			func(j): return not (j.cell_x == cell.x and j.cell_y == cell.y)
 		)
 		GameState.complete_dig(cell)
+
+
+func _tick_build_jobs(delta: float) -> void:
+	if GameState.build_jobs.is_empty():
+		return
+	var completed: Array[int] = []
+	for job in GameState.build_jobs:
+		job.progress = float(job.progress) + delta
+		if float(job.progress) >= float(job.duration):
+			completed.append(int(job.id))
+	for job_id in completed:
+		GameState.complete_structure_build(job_id)
 
 
 func _tick_mine_rearm_jobs(delta: float) -> void:

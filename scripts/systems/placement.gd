@@ -80,6 +80,10 @@ static func is_digging_at(cell: Vector2i) -> bool:
 	return false
 
 
+static func is_building_at(cell: Vector2i) -> bool:
+	return GameState.is_building_at(cell)
+
+
 static func tower_footprint_cells(tower: Dictionary) -> Array[Vector2i]:
 	var size := Vector2i(int(tower.get("width", 2)), int(tower.get("height", 2)))
 	return footprint_cells(Vector2i(tower.tile_x, tower.tile_y), size)
@@ -88,6 +92,11 @@ static func tower_footprint_cells(tower: Dictionary) -> Array[Vector2i]:
 static func cell_under_tower(cell: Vector2i) -> bool:
 	for tower in GameState.towers:
 		if cell in tower_footprint_cells(tower):
+			return true
+	for job in GameState.build_jobs:
+		if str(job.get("kind", "")) != "tower":
+			continue
+		if cell in GameState.build_job_footprint_cells(job):
 			return true
 	return false
 
@@ -136,6 +145,8 @@ static func can_place_tower(anchor: Vector2i, tower_type: String) -> String:
 			return "Chambers must be carved in rock beside tunnels."
 		if is_digging_at(foot_cell):
 			return "Wait for digging to finish."
+		if is_building_at(foot_cell):
+			return "Wait for construction to finish."
 		if cell_under_tower(foot_cell):
 			return "Overlaps another structure."
 		if not GameState.get_mine_at(foot_cell).is_empty():
@@ -157,6 +168,8 @@ static func can_place_mine(cell: Vector2i) -> String:
 		return "Blocked by a structure."
 	if is_digging_at(cell):
 		return "Wait for digging to finish."
+	if is_building_at(cell):
+		return "Wait for construction to finish."
 	return ""
 
 

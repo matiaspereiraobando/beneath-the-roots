@@ -2,6 +2,7 @@ extends RefCounted
 class_name CombatSystem
 
 const PlacementRules = preload("res://scripts/systems/placement.gd")
+const TowerCombatStats = preload("res://scripts/data/tower_combat_stats.gd")
 const ProjectileSprites = preload("res://scripts/util/projectile_sprites.gd")
 
 var pathfinding: GridPathfinding
@@ -136,12 +137,10 @@ func _update_mines(delta: float) -> void:
 				enemy.hp = float(enemy.hp) - GameTuning.MINE_DAMAGE
 				GameState.trigger_mine(mine)
 				GameState.add_combat_effect({
-					"type": "splash",
+					"type": "mine_explode",
 					"x": center.x,
 					"y": center.y,
-					"radius": 28.0,
-					"color": TowerSprites.effect_color("mine"),
-					"max_life": 0.35,
+					"max_life": TowerSprites.mine_explode_duration(),
 				})
 				if enemy.hp <= 0:
 					GameState.kill_enemy(enemy)
@@ -149,41 +148,15 @@ func _update_mines(delta: float) -> void:
 
 
 func _tower_damage(tower: Dictionary) -> float:
-	var base: float = GameTuning.tower_stat(tower.type, "damage", GameTuning.SPITTER_DAMAGE)
-	var aura := _aura_multipliers_for_tower(tower)
-	return (base + tower.soldiers * GameTuning.SOLDIER_DPS_BONUS) * aura.damage_mult
+	return TowerCombatStats.tower_damage(tower, pathfinding)
 
 
 func _tower_fire_rate(tower: Dictionary) -> float:
-	var base: float = GameTuning.tower_stat(tower.type, "fire_rate", GameTuning.SPITTER_FIRE_RATE)
-	var rate: float = base * (1.0 + tower.soldiers * GameTuning.SOLDIER_FIRE_RATE_BONUS)
-	var aura := _aura_multipliers_for_tower(tower)
-	rate *= aura.fire_rate_mult
-	if GameState.queen_satiety < GameTuning.STARVE_THRESHOLD:
-		rate *= GameTuning.STARVE_FIRE_RATE_MULT
-	return rate
+	return TowerCombatStats.tower_fire_rate(tower, pathfinding)
 
 
 func _aura_multipliers_for_tower(tower: Dictionary) -> Dictionary:
-	var damage_mult := 1.0
-	var fire_rate_mult := 1.0
-	var tower_center := PlacementRules.tower_world_center(tower, pathfinding)
-	for other in GameState.towers:
-		if other.type != "gland":
-			continue
-		var gland_center := PlacementRules.tower_world_center(other, pathfinding)
-		var gland_range: float = GameTuning.tower_stat("gland", "range", 180.0)
-		if tower_center.distance_to(gland_center) > gland_range:
-			continue
-		damage_mult = maxf(
-			damage_mult,
-			1.0 + float(GameTuning.tower_stat("gland", "aura_damage", 0.25))
-		)
-		fire_rate_mult = maxf(
-			fire_rate_mult,
-			1.0 + float(GameTuning.tower_stat("gland", "aura_fire_rate", 0.2))
-		)
-	return {"damage_mult": damage_mult, "fire_rate_mult": fire_rate_mult}
+	return TowerCombatStats.aura_multipliers(tower, pathfinding)
 
 
 func _find_target(from: Vector2, range_px: float) -> Dictionary:

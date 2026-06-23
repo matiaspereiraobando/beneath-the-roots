@@ -47,6 +47,14 @@ const MINE_DAMAGE := 40
 const MINE_TRIGGER_RADIUS := 20.0
 const MINE_REARM_DURATION := 3.0
 
+const STRUCTURE_BUILD_DURATIONS := {
+	"mine": 2.0,
+	"gland": 3.0,
+	"spitter": 4.0,
+	"crusher": 5.0,
+	"needle": 6.0,
+}
+
 const TOWER_STATS := {
 	"spitter": {
 		"range": 288.0,
@@ -119,3 +127,7 @@ static func tower_stat(type: String, key: String, default = null):
 
 static func tower_cost(type: String) -> int:
 	return TOWER_COSTS.get(type, SPITTER_COST)
+
+
+static func structure_build_duration(type: String) -> float:
+	return float(STRUCTURE_BUILD_DURATIONS.get(type, 4.0))

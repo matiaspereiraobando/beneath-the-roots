@@ -48,6 +48,51 @@ static func effect_color(tower_type: String) -> Color:
 	return projectile_color(tower_type)
 
 
+const MINE_EXPLODE_FRAME_SEC := 0.08
+
+static var _mine_explode_frames: SpriteFrames
+
+
+static func mine_explode_sprite_frames() -> SpriteFrames:
+	if _mine_explode_frames != null:
+		return _mine_explode_frames
+	var sheet_path := SpritePaths.mine_explode_sheet()
+	if ResourceLoader.exists(sheet_path):
+		var sheet: Texture2D = load(sheet_path)
+		_mine_explode_frames = SpriteFrames.new()
+		_mine_explode_frames.add_animation(&"explode")
+		_mine_explode_frames.set_animation_loop(&"explode", false)
+		var count := maxi(1, int(float(sheet.get_width()) / float(MINE_FRAME_SIZE)))
+		for i in count:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = sheet
+			atlas.region = Rect2i(i * MINE_FRAME_SIZE, 0, MINE_FRAME_SIZE, MINE_FRAME_SIZE)
+			_mine_explode_frames.add_frame(&"explode", atlas, MINE_EXPLODE_FRAME_SEC)
+	else:
+		_mine_explode_frames = _fallback_mine_explode_frames()
+	return _mine_explode_frames
+
+
+static func mine_explode_duration() -> float:
+	var frames := mine_explode_sprite_frames()
+	return float(frames.get_frame_count(&"explode")) * MINE_EXPLODE_FRAME_SEC
+
+
+static func mine_explode_frame_index(elapsed_sec: float) -> int:
+	var frames := mine_explode_sprite_frames()
+	var count := frames.get_frame_count(&"explode")
+	return mini(count - 1, int(elapsed_sec / MINE_EXPLODE_FRAME_SEC))
+
+
+static func _fallback_mine_explode_frames() -> SpriteFrames:
+	var frames := SpriteFrames.new()
+	frames.add_animation(&"explode")
+	frames.set_animation_loop(&"explode", false)
+	var tex := _draw_procedural(_draw_mine, MINE_FRAME_SIZE)
+	frames.add_frame(&"explode", tex, MINE_EXPLODE_FRAME_SEC)
+	return frames
+
+
 static func _frame_size_for(structure_type: String) -> int:
 	return _mine_frame_size() if structure_type == "mine" else TOWER_FRAME_SIZE
 

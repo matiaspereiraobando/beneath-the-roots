@@ -29,6 +29,8 @@ const PlacementRules = preload("res://scripts/systems/placement.gd")
 
 signal dig_started(cell: Vector2i)
 signal dig_completed(cell: Vector2i)
+signal structure_build_started(job: Dictionary)
+signal structure_build_completed(job: Dictionary)
 signal mine_placed(mine: Dictionary)
 signal mine_triggered(mine: Dictionary)
 signal mine_rearm_started(mine: Dictionary)
@@ -59,6 +61,7 @@ var enemies: Array = []
 var towers: Array = []
 var mines: Array = []
 var dig_jobs: Array = []
+var build_jobs: Array = []
 var mine_rearm_jobs: Array = []
 var projectiles: Array = []
 var combat_effects: Array = []
@@ -66,6 +69,7 @@ var combat_effects: Array = []
 var _next_enemy_id: int = 1
 var _next_tower_id: int = 1
 var _next_mine_id: int = 1
+var _next_build_job_id: int = 1
 var _next_projectile_id: int = 1
 
 var _spawn_queue: Array = []
@@ -101,6 +105,7 @@ func reset_for_level(level_id: String, starting_biomass: int = 50, max_hp: int =
 	towers.clear()
 	mines.clear()
 	dig_jobs.clear()
+	build_jobs.clear()
 	mine_rearm_jobs.clear()
 	projectiles.clear()
 	combat_effects.clear()
@@ -111,6 +116,7 @@ func reset_for_level(level_id: String, starting_biomass: int = 50, max_hp: int =
 	_next_enemy_id = 1
 	_next_tower_id = 1
 	_next_mine_id = 1
+	_next_build_job_id = 1
 	_next_projectile_id = 1
 	_emit_all()
 	level_loaded.emit(level_id)
@@ -246,6 +252,92 @@ func complete_dig(cell: Vector2i) -> void:
 
 func get_dig_jobs() -> Array:
 	return dig_jobs
+
+
+func next_build_job_id() -> int:
+	var id := _next_build_job_id
+	_next_build_job_id += 1
+	return id
+
+
+func build_job_footprint_cells(job: Dictionary) -> Array[Vector2i]:
+	if str(job.get("kind", "")) == "mine":
+		return [Vector2i(int(job.tile_x), int(job.tile_y))]
+	var size := Vector2i(int(job.get("width", 2)), int(job.get("height", 2)))
+	return PlacementRules.footprint_cells(Vector2i(int(job.tile_x), int(job.tile_y)), size)
+
+
+func is_building_at(cell: Vector2i) -> bool:
+	for job in build_jobs:
+		if cell in build_job_footprint_cells(job):
+			return true
+	return false
+
+
+func get_build_job_at(cell: Vector2i) -> Dictionary:
+	for job in build_jobs:
+		if cell in build_job_footprint_cells(job):
+			return job
+	return {}
+
+
+func _start_structure_build(anchor: Vector2i, structure_type: String, kind: String) -> String:
+	if builder_count < 1:
+		return "Need a builder ant in the colony."
+	var duration := GameTuning.structure_build_duration(structure_type)
+	var size := PlacementRules.footprint_for(structure_type)
+	var job := {
+		"id": next_build_job_id(),
+		"kind": kind,
+		"structure_type": structure_type,
+		"tile_x": anchor.x,
+		"tile_y": anchor.y,
+		"width": size.x,
+		"height": size.y,
+		"progress": 0.0,
+		"duration": duration,
+	}
+	builder_count -= 1
+	colony_counts_changed.emit()
+	build_jobs.append(job)
+	structure_build_started.emit(job)
+	return ""
+
+
+func complete_structure_build(job_id: int) -> void:
+	var job: Dictionary = {}
+	for entry in build_jobs:
+		if int(entry.id) == job_id:
+			job = entry
+			break
+	if job.is_empty():
+		return
+	build_jobs = build_jobs.filter(func(j): return int(j.id) != job_id)
+	builder_count += 1
+	colony_counts_changed.emit()
+	var structure_type := str(job.structure_type)
+	if str(job.kind) == "mine":
+		var mine := {
+			"id": next_mine_id(),
+			"tile_x": int(job.tile_x),
+			"tile_y": int(job.tile_y),
+			"armed": true,
+		}
+		mines.append(mine)
+		mine_placed.emit(mine)
+	else:
+		var tower := {
+			"id": next_tower_id(),
+			"type": structure_type,
+			"tile_x": int(job.tile_x),
+			"tile_y": int(job.tile_y),
+			"width": int(job.width),
+			"height": int(job.height),
+			"soldiers": 0,
+		}
+		towers.append(tower)
+		tower_placed.emit(tower)
+	structure_build_completed.emit(job)
 
 
 func next_mine_id() -> int:
@@ -454,19 +546,7 @@ func place_tower(anchor: Vector2i, tower_type: String) -> String:
 		return "Need %d biomass (you have %d)." % [cost, biomass]
 	if not spend_biomass(cost):
 		return "Need %d biomass." % cost
-	var size := PlacementRules.footprint_for(tower_type)
-	var tower := {
-		"id": next_tower_id(),
-		"type": tower_type,
-		"tile_x": anchor.x,
-		"tile_y": anchor.y,
-		"width": size.x,
-		"height": size.y,
-		"soldiers": 0,
-	}
-	towers.append(tower)
-	tower_placed.emit(tower)
-	return ""
+	return _start_structure_build(anchor, tower_type, "tower")
 
 
 func place_spitter(anchor: Vector2i) -> String:
@@ -482,15 +562,7 @@ func place_mine(cell: Vector2i) -> String:
 		return "Need %d biomass (you have %d)." % [cost, biomass]
 	if not spend_biomass(cost):
 		return "Need %d biomass." % cost
-	var mine := {
-		"id": next_mine_id(),
-		"tile_x": cell.x,
-		"tile_y": cell.y,
-		"armed": true,
-	}
-	mines.append(mine)
-	mine_placed.emit(mine)
-	return ""
+	return _start_structure_build(cell, "mine", "mine")
 
 
 func repath_enemies(pathfinding: GridPathfinding) -> void:

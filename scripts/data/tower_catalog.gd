@@ -74,6 +74,7 @@ static func stat_lines(type: String) -> PackedStringArray:
 	var lines := PackedStringArray()
 	lines.append("Footprint: %s" % footprint_label(type))
 	lines.append("Cost: %d biomass" % cost(type))
+	lines.append("Build time: %.0fs" % GameTuning.structure_build_duration(type))
 
 	if type == "mine":
 		lines.append("Damage: %d (once per trigger)" % GameTuning.MINE_DAMAGE)

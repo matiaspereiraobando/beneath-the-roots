@@ -73,6 +73,22 @@ static func spitter_splat_sheet() -> String:
 	return "res://assets/sprites/projectiles/spitter_splat_sheet.png"
 
 
+static func scaffold_sheet() -> String:
+	return "res://assets/sprites/structures/scaffold_sheet.png"
+
+
+static func mine_explode_sheet() -> String:
+	return "res://assets/sprites/structures/mine/explode_sheet.png"
+
+
+static func soldier_up_button_sheet() -> String:
+	return "res://assets/sprites/ui/soldier_up_32.png"
+
+
+static func soldier_down_button_sheet() -> String:
+	return "res://assets/sprites/ui/soldier_down_32.png"
+
+
 static func micro_background() -> String:
 	var v2 := "res://assets/micro/nursery_background_v2.png"
 	if ResourceLoader.exists(v2):
