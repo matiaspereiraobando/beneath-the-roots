@@ -47,14 +47,15 @@ enum MacroTool { NONE, DIG, BUILD }
 @onready var _structure_info_attack: Label = $HudLayer/StructureInfoPanel/Margin/VBox/AttackType
 @onready var _structure_info_desc: Label = $HudLayer/StructureInfoPanel/Margin/VBox/Description
 @onready var _structure_info_stats: Label = $HudLayer/StructureInfoPanel/Margin/VBox/Stats
-@onready var _tower_title: Label = $HudLayer/TowerMenu/Margin/VBox/Title
+@onready var _tower_title: Label = $HudLayer/TowerMenu/Margin/VBox/Header/Title
 @onready var _tower_stats: RichTextLabel = $HudLayer/TowerMenu/Margin/VBox/Stats
 @onready var _add_btn: SoldierSlotButton = $HudLayer/TowerMenu/Margin/VBox/Buttons/AddBtn
 @onready var _remove_btn: SoldierSlotButton = $HudLayer/TowerMenu/Margin/VBox/Buttons/RemoveBtn
-@onready var _close_btn: Button = $HudLayer/TowerMenu/Margin/VBox/Buttons/CloseBtn
-@onready var _mine_info: Label = $HudLayer/MineMenu/VBox/Info
-@onready var _mine_rearm_btn: Button = $HudLayer/MineMenu/VBox/Buttons/RearmBtn
-@onready var _mine_close_btn: Button = $HudLayer/MineMenu/VBox/Buttons/CloseBtn
+@onready var _close_btn: Button = $HudLayer/TowerMenu/Margin/VBox/Header/CloseBtn
+@onready var _mine_title: Label = $HudLayer/MineMenu/Margin/VBox/Header/Title
+@onready var _mine_stats: RichTextLabel = $HudLayer/MineMenu/Margin/VBox/Stats
+@onready var _mine_rearm_btn: SoldierSlotButton = $HudLayer/MineMenu/Margin/VBox/Buttons/RearmBtn
+@onready var _mine_close_btn: Button = $HudLayer/MineMenu/Margin/VBox/Header/CloseBtn
 @onready var _dig_btn: ActionToolButton = $HudLayer/ToolBarPanel/ToolBar/ActionsBar/DigBtn
 @onready var _build_btn: ActionToolButton = $HudLayer/ToolBarPanel/ToolBar/ActionsBar/BuildBtn
 @onready var _structure_gap: Control = $HudLayer/ToolBarPanel/ToolBar/StructureGap
@@ -72,6 +73,7 @@ var _build_feedback: Label
 var _feedback_timer: float = 0.0
 var _active_tool: MacroTool = MacroTool.NONE
 var _selected_structure: String = ""
+var _hovered_structure: String = ""
 var _structure_buttons: Dictionary = {}
 var _preview_valid_tex: Texture2D
 var _preview_invalid_tex: Texture2D
@@ -395,6 +397,8 @@ func _update_toolbar_visuals() -> void:
 		var btn: ActionToolButton = _structure_buttons[type]
 		var is_selected: bool = _selected_structure == type and _active_tool == MacroTool.BUILD
 		btn.set_pressed_no_signal(is_selected)
+	if not show_structures:
+		_hovered_structure = ""
 	call_deferred("_sync_toolbar_layout")
 	_refresh_structure_info_panel()
 
@@ -402,11 +406,11 @@ func _update_toolbar_visuals() -> void:
 func _refresh_structure_info_panel() -> void:
 	if structure_info_panel == null:
 		return
-	var show := GameState.is_playing() and _active_tool == MacroTool.BUILD and _selected_structure != ""
+	var show := GameState.is_playing() and _active_tool == MacroTool.BUILD and _hovered_structure != ""
 	structure_info_panel.visible = show
 	if not show:
 		return
-	var type := _selected_structure
+	var type := _hovered_structure
 	_structure_info_title.text = TowerCatalog.display_name(type)
 	_structure_info_attack.text = TowerCatalog.attack_type(type)
 	_structure_info_desc.text = TowerCatalog.description(type)
@@ -593,8 +597,12 @@ func _setup_toolbar() -> void:
 			BUILD_TYPES.find(type) + 1 if type != "mine" else 5,
 		]
 		btn.pressed.connect(_on_structure_button.bind(type))
+		btn.mouse_entered.connect(_on_structure_button_hover.bind(type))
+		btn.mouse_exited.connect(_on_structure_button_unhover)
 		_structure_bar.add_child(btn)
 		_structure_buttons[type] = btn
+	structure_info_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	structure_info_panel.mouse_exited.connect(_on_structure_info_panel_unhover)
 	_update_toolbar_visuals()
 	call_deferred("_sync_toolbar_layout")
 
@@ -634,6 +642,8 @@ func _apply_toolbar_styles() -> void:
 func _setup_tower_menu_buttons() -> void:
 	_add_btn.setup_from_sheet(SpritePaths.soldier_up_button_sheet())
 	_remove_btn.setup_from_sheet(SpritePaths.soldier_down_button_sheet())
+	_mine_rearm_btn.setup_from_sheet(SpritePaths.builder_rearm_button_sheet())
+	_mine_rearm_btn.tooltip_text = "Rearm mine"
 
 
 func _apply_tower_menu_styles() -> void:
@@ -642,15 +652,16 @@ func _apply_tower_menu_styles() -> void:
 	_tower_title.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE)
 	HudThemeRes.apply_pixel_font(_tower_stats, HudThemeRes.FONT_CAPTION)
 	_tower_stats.add_theme_color_override("default_color", HudThemeRes.SECONDARY)
-	HudThemeRes.apply_toolbar_text_button(_close_btn, HudThemeRes.ON_SURFACE_VARIANT)
+	HudThemeRes.apply_menu_close_button(_close_btn)
 
 
 func _apply_mine_menu_styles() -> void:
 	mine_menu.add_theme_stylebox_override("panel", HudThemeRes.ant_strip())
-	HudThemeRes.apply_pixel_label(_mine_info, HudThemeRes.FONT_CAPTION)
-	_mine_info.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE)
-	HudThemeRes.apply_toolbar_text_button(_mine_rearm_btn, HudThemeRes.SECONDARY)
-	HudThemeRes.apply_toolbar_text_button(_mine_close_btn, HudThemeRes.ON_SURFACE_VARIANT)
+	HudThemeRes.apply_pixel_label(_mine_title, HudThemeRes.FONT_CAPTION)
+	_mine_title.add_theme_color_override("font_color", HudThemeRes.ON_SURFACE)
+	HudThemeRes.apply_pixel_font(_mine_stats, HudThemeRes.FONT_CAPTION)
+	_mine_stats.add_theme_color_override("default_color", HudThemeRes.SECONDARY)
+	HudThemeRes.apply_menu_close_button(_mine_close_btn)
 
 
 func _apply_structure_info_styles() -> void:
@@ -670,6 +681,40 @@ func _on_structure_button(type: String) -> void:
 		_clear_structure_selection()
 	else:
 		_select_structure(type)
+
+
+func _on_structure_button_hover(type: String) -> void:
+	if _active_tool != MacroTool.BUILD:
+		return
+	_hovered_structure = type
+	_refresh_structure_info_panel()
+
+
+func _on_structure_button_unhover() -> void:
+	call_deferred("_check_structure_info_hover")
+
+
+func _on_structure_info_panel_unhover() -> void:
+	call_deferred("_check_structure_info_hover")
+
+
+func _check_structure_info_hover() -> void:
+	if _active_tool != MacroTool.BUILD:
+		_hovered_structure = ""
+		_refresh_structure_info_panel()
+		return
+	var mouse := get_viewport().get_mouse_position()
+	for type in _structure_buttons:
+		var btn: ActionToolButton = _structure_buttons[type]
+		if btn.get_global_rect().has_point(mouse):
+			if _hovered_structure != type:
+				_hovered_structure = type
+				_refresh_structure_info_panel()
+			return
+	if structure_info_panel.visible and structure_info_panel.get_global_rect().has_point(mouse):
+		return
+	_hovered_structure = ""
+	_refresh_structure_info_panel()
 
 
 func _show_tower_menu(tower: Dictionary, world_pos: Vector2) -> void:
@@ -746,18 +791,14 @@ func _position_mine_menu(world_pos: Vector2) -> void:
 func _refresh_mine_menu() -> void:
 	if _selected_mine.is_empty():
 		return
-	var label: String = BUILD_LABELS.get("mine", "Fungal mine")
-	if _selected_mine.armed:
-		_mine_info.text = "%s — armed" % label
-	elif GameState.is_rearming_mine(_selected_mine.id):
-		_mine_info.text = "%s — rearming…" % label
-	else:
-		_mine_info.text = "%s — spent" % label
+	_mine_title.text = TowerCombatStats.menu_title({"type": "mine"})
+	_mine_stats.text = TowerCombatStats.mine_menu_stats_bbcode(_selected_mine)
 	_mine_rearm_btn.disabled = (
 		_selected_mine.armed
 		or GameState.is_rearming_mine(_selected_mine.id)
 		or not GameState.is_playing()
 	)
+	mine_menu.reset_size()
 
 
 func _hide_mine_menu() -> void:
@@ -791,13 +832,20 @@ func _on_remove_soldier() -> void:
 
 
 func _on_enemy_spawned(enemy: Dictionary) -> void:
+	var root := Node2D.new()
+	root.position = enemy.position
 	var sprite := AnimatedSprite2D.new()
+	sprite.name = "Sprite"
 	sprite.sprite_frames = EnemySprites.make_walk_sprite_frames(str(enemy.type))
 	sprite.animation = &"walk"
 	sprite.play()
-	sprite.position = enemy.position
-	enemies_root.add_child(sprite)
-	_enemy_sprites[enemy.id] = sprite
+	root.add_child(sprite)
+	var hp_bar := EnemyHpBar.new()
+	hp_bar.name = "HpBar"
+	hp_bar.set_ratio(float(enemy.hp) / float(enemy.max_hp))
+	root.add_child(hp_bar)
+	enemies_root.add_child(root)
+	_enemy_sprites[enemy.id] = root
 
 
 func _on_enemy_removed(enemy: Dictionary) -> void:
@@ -825,8 +873,9 @@ func _setup_world_ui() -> void:
 	add_child(_dig_progress_root)
 	_mines_root = Node2D.new()
 	_mines_root.name = "Mines"
-	_mines_root.z_index = 4
+	_mines_root.z_index = 2
 	add_child(_mines_root)
+	enemies_root.z_index = 3
 	_scaffolds_root = Node2D.new()
 	_scaffolds_root.name = "Scaffolds"
 	_scaffolds_root.z_index = 5
@@ -1111,6 +1160,26 @@ func _make_ring(color: Color) -> Sprite2D:
 	return sprite
 
 
+func _make_splash_circle(color: Color, radius_px: float) -> Sprite2D:
+	var size := maxi(8, int(ceil(radius_px * 2.0)))
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outline := 2.5
+	for y in size:
+		for x in size:
+			var dist := Vector2(x + 0.5, y + 0.5).distance_to(center)
+			if dist > radius_px:
+				continue
+			var alpha := 0.18
+			if dist >= radius_px - outline:
+				alpha = 0.72
+			image.set_pixel(x, y, Color(color.r, color.g, color.b, alpha * color.a))
+	var sprite := Sprite2D.new()
+	sprite.texture = ImageTexture.create_from_image(image)
+	sprite.centered = true
+	return sprite
+
+
 func _show_build_feedback(message: String) -> void:
 	if _build_feedback == null:
 		return
@@ -1218,9 +1287,8 @@ func _sync_combat_effects() -> void:
 		var alpha := clampf(float(effect.life) / max_life, 0.0, 1.0)
 		match effect.get("type", ""):
 			"splash":
-				var splash := _make_ring(effect.color)
 				var radius: float = float(effect.radius)
-				splash.scale = Vector2((radius * 2.0) / float(GameTuning.TILE_SIZE), (radius * 2.0) / float(GameTuning.TILE_SIZE))
+				var splash := _make_splash_circle(effect.color, radius)
 				splash.position = Vector2(effect.x, effect.y)
 				splash.modulate.a = alpha
 				_effects_root.add_child(splash)
@@ -1250,6 +1318,15 @@ func _sync_combat_effects() -> void:
 				splat.centered = true
 				splat.position = Vector2(effect.x, effect.y)
 				_effects_root.add_child(splat)
+			"crusher_splat":
+				var crusher_splat_frames := ProjectileSprites.crusher_splat_sprite_frames()
+				var crusher_elapsed := max_life - float(effect.life)
+				var crusher_frame_idx := ProjectileSprites.crusher_splat_frame_index(crusher_elapsed)
+				var crusher_splat := Sprite2D.new()
+				crusher_splat.texture = crusher_splat_frames.get_frame_texture(&"splat", crusher_frame_idx)
+				crusher_splat.centered = true
+				crusher_splat.position = Vector2(effect.x, effect.y)
+				_effects_root.add_child(crusher_splat)
 
 
 func _on_mine_placed(mine: Dictionary) -> void:
@@ -1289,7 +1366,7 @@ func _sync_mine_sprite(mine: Dictionary) -> void:
 		_mine_sprites[id] = anim
 	var sprite: AnimatedSprite2D = _mine_sprites[id]
 	sprite.position = center
-	sprite.visible = mine.armed or GameState.is_rearming_mine(mine.id)
+	sprite.visible = true
 	if GameState.is_rearming_mine(mine.id):
 		sprite.modulate = Color(0.95, 0.78, 0.42)
 	elif mine.armed:
@@ -1302,8 +1379,12 @@ func _sync_enemy_positions() -> void:
 	for enemy in GameState.enemies:
 		if not _enemy_sprites.has(enemy.id):
 			continue
-		var sprite: AnimatedSprite2D = _enemy_sprites[enemy.id]
-		sprite.position = enemy.position
+		var root: Node2D = _enemy_sprites[enemy.id]
+		root.position = enemy.position
+		var sprite: AnimatedSprite2D = root.get_node("Sprite")
+		var hp_bar: EnemyHpBar = root.get_node("HpBar")
+		var max_hp: float = maxf(float(enemy.max_hp), 1.0)
+		hp_bar.set_ratio(float(enemy.hp) / max_hp)
 		var path: PackedVector2Array = enemy.path
 		var idx: int = int(enemy.path_index)
 		if idx < path.size() - 1:
@@ -1331,12 +1412,19 @@ func _sync_projectiles() -> void:
 
 func _make_projectile_sprite(proj_type: String, dot_size: int) -> Node2D:
 	if proj_type == "spitter":
-		var anim := AnimatedSprite2D.new()
-		anim.sprite_frames = ProjectileSprites.spitter_sprite_frames()
-		anim.animation = &"fly"
-		anim.play()
-		anim.centered = true
-		return anim
+		var spitter_anim := AnimatedSprite2D.new()
+		spitter_anim.sprite_frames = ProjectileSprites.spitter_sprite_frames()
+		spitter_anim.animation = &"fly"
+		spitter_anim.play()
+		spitter_anim.centered = true
+		return spitter_anim
+	if proj_type == "crusher":
+		var crusher_anim := AnimatedSprite2D.new()
+		crusher_anim.sprite_frames = ProjectileSprites.crusher_sprite_frames()
+		crusher_anim.animation = &"fly"
+		crusher_anim.play()
+		crusher_anim.centered = true
+		return crusher_anim
 	var image := Image.create(dot_size, dot_size, false, Image.FORMAT_RGBA8)
 	image.fill(TowerSprites.projectile_color(proj_type))
 	var sprite := Sprite2D.new()

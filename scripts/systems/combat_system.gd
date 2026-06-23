@@ -66,20 +66,15 @@ func _fire_crusher(tower: Dictionary, center: Vector2, range_px: float, tid: int
 	if target.is_empty():
 		_tower_cooldowns[tid] = 0.1
 		return
-	var splash: float = GameTuning.tower_stat("crusher", "splash_radius", 90.0)
-	var dmg: float = _tower_damage(tower)
-	for enemy in GameState.enemies.duplicate():
-		if center.distance_to(enemy.position) <= splash:
-			enemy.hp = float(enemy.hp) - dmg
-			if enemy.hp <= 0:
-				GameState.kill_enemy(enemy)
-	GameState.add_combat_effect({
-		"type": "splash",
+	GameState.add_projectile({
+		"id": GameState.next_projectile_id(),
 		"x": center.x,
 		"y": center.y,
-		"radius": splash,
-		"color": TowerSprites.effect_color("crusher"),
-		"max_life": 0.28,
+		"target_id": target.id,
+		"damage": _tower_damage(tower),
+		"speed": GameTuning.PROJECTILE_SPEED,
+		"type": "crusher",
+		"splash_radius": GameTuning.tower_stat("crusher", "splash_radius", 90.0),
 	})
 	GameState.emit_tower_fired(tid)
 	_tower_cooldowns[tid] = 1.0 / _tower_fire_rate(tower)
@@ -188,17 +183,26 @@ func _update_projectiles(delta: float) -> void:
 		proj.x = float(proj.x) + dir.x * step
 		proj.y = float(proj.y) + dir.y * step
 		if Vector2(float(proj.x), float(proj.y)).distance_to(target_pos) < 8.0:
-			if str(proj.get("type", "")) == "spitter":
-				GameState.add_combat_effect({
-					"type": "spitter_splat",
-					"x": float(proj.x),
-					"y": float(proj.y),
-					"max_life": ProjectileSprites.spitter_splat_duration(),
-				})
-			target.hp = float(target.hp) - float(proj.damage)
+			var proj_type := str(proj.get("type", "spitter"))
+			var hit_pos := Vector2(float(proj.x), float(proj.y))
+			match proj_type:
+				"crusher":
+					_apply_crusher_splash(
+						hit_pos,
+						float(proj.damage),
+						float(proj.get("splash_radius", 90.0)),
+					)
+				_:
+					GameState.add_combat_effect({
+						"type": "spitter_splat",
+						"x": hit_pos.x,
+						"y": hit_pos.y,
+						"max_life": ProjectileSprites.spitter_splat_duration(),
+					})
+					target.hp = float(target.hp) - float(proj.damage)
+					if target.hp <= 0:
+						GameState.kill_enemy(target)
 			to_remove.append(proj)
-			if target.hp <= 0:
-				GameState.kill_enemy(target)
 	if not to_remove.is_empty():
 		GameState.remove_projectiles(to_remove)
 
@@ -208,3 +212,25 @@ func _enemy_by_id(id: int) -> Dictionary:
 		if enemy.id == id:
 			return enemy
 	return {}
+
+
+func _apply_crusher_splash(hit_pos: Vector2, dmg: float, splash_radius: float) -> void:
+	for enemy in GameState.enemies.duplicate():
+		if hit_pos.distance_to(enemy.position) <= splash_radius:
+			enemy.hp = float(enemy.hp) - dmg
+			if enemy.hp <= 0:
+				GameState.kill_enemy(enemy)
+	GameState.add_combat_effect({
+		"type": "crusher_splat",
+		"x": hit_pos.x,
+		"y": hit_pos.y,
+		"max_life": ProjectileSprites.crusher_splat_duration(),
+	})
+	GameState.add_combat_effect({
+		"type": "splash",
+		"x": hit_pos.x,
+		"y": hit_pos.y,
+		"radius": splash_radius,
+		"color": TowerSprites.effect_color("crusher"),
+		"max_life": 0.35,
+	})

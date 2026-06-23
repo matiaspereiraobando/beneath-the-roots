@@ -73,6 +73,14 @@ static func spitter_splat_sheet() -> String:
 	return "res://assets/sprites/projectiles/spitter_splat_sheet.png"
 
 
+static func crusher_projectile_sheet() -> String:
+	return "res://assets/sprites/projectiles/crusher_sheet.png"
+
+
+static func crusher_splat_sheet() -> String:
+	return "res://assets/sprites/projectiles/crusher_splat_sheet.png"
+
+
 static func scaffold_sheet() -> String:
 	return "res://assets/sprites/structures/scaffold_sheet.png"
 
@@ -87,6 +95,10 @@ static func soldier_up_button_sheet() -> String:
 
 static func soldier_down_button_sheet() -> String:
 	return "res://assets/sprites/ui/soldier_down_32.png"
+
+
+static func builder_rearm_button_sheet() -> String:
+	return "res://assets/sprites/ui/builder_rearm_32.png"
 
 
 static func micro_background() -> String:

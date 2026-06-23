@@ -138,6 +138,20 @@ static func apply_toolbar_text_button(btn: Button, accent: Color = ON_SURFACE) -
 	btn.add_theme_stylebox_override("disabled", ant_strip())
 
 
+static func apply_menu_close_button(btn: Button) -> void:
+	btn.custom_minimum_size = Vector2(32, 32)
+	btn.text = "×"
+	btn.tooltip_text = "Close"
+	apply_pixel_font(btn, FONT_STAT, OUTLINE_STAT)
+	btn.add_theme_color_override("font_color", ON_SURFACE)
+	btn.add_theme_color_override("font_hover_color", PRIMARY)
+	btn.add_theme_color_override("font_pressed_color", PRIMARY_CONTAINER)
+	btn.add_theme_stylebox_override("normal", icon_well())
+	btn.add_theme_stylebox_override("hover", wave_pill())
+	btn.add_theme_stylebox_override("pressed", wave_pill())
+	btn.add_theme_stylebox_override("focus", icon_well())
+
+
 static func apply_toolbar_icon_button(btn: Button) -> void:
 	apply_pixel_font(btn, FONT_CAPTION)
 	btn.add_theme_stylebox_override("normal", icon_well())

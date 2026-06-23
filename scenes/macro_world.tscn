@@ -114,9 +114,19 @@ theme_override_constants/margin_bottom = 6
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Title" type="Label" parent="HudLayer/TowerMenu/Margin/VBox"]
+[node name="Header" type="HBoxContainer" parent="HudLayer/TowerMenu/Margin/VBox"]
 layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="HudLayer/TowerMenu/Margin/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Spitter"
+
+[node name="CloseBtn" type="Button" parent="HudLayer/TowerMenu/Margin/VBox/Header"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+text = "×"
 
 [node name="Stats" type="RichTextLabel" parent="HudLayer/TowerMenu/Margin/VBox"]
 custom_minimum_size = Vector2(160, 0)
@@ -141,32 +151,52 @@ custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 script = ExtResource("3_soldier_btn")
 
-[node name="CloseBtn" type="Button" parent="HudLayer/TowerMenu/Margin/VBox/Buttons"]
-layout_mode = 2
-text = "X"
-
 [node name="MineMenu" type="PanelContainer" parent="HudLayer"]
 visible = false
-offset_right = 156.0
-offset_bottom = 72.0
+custom_minimum_size = Vector2(176, 0)
+offset_right = 176.0
+offset_bottom = 120.0
 theme_type_variation = &"GameHud"
 
-[node name="VBox" type="VBoxContainer" parent="HudLayer/MineMenu"]
+[node name="Margin" type="MarginContainer" parent="HudLayer/MineMenu"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="HudLayer/MineMenu/Margin"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Info" type="Label" parent="HudLayer/MineMenu/VBox"]
+[node name="Header" type="HBoxContainer" parent="HudLayer/MineMenu/Margin/VBox"]
 layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="HudLayer/MineMenu/Margin/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Fungal mine"
 
-[node name="Buttons" type="HBoxContainer" parent="HudLayer/MineMenu/VBox"]
+[node name="CloseBtn" type="Button" parent="HudLayer/MineMenu/Margin/VBox/Header"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+text = "×"
+
+[node name="Stats" type="RichTextLabel" parent="HudLayer/MineMenu/Margin/VBox"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 3
+text = "Stats"
+
+[node name="Buttons" type="HBoxContainer" parent="HudLayer/MineMenu/Margin/VBox"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="RearmBtn" type="Button" parent="HudLayer/MineMenu/VBox/Buttons"]
+[node name="RearmBtn" type="TextureButton" parent="HudLayer/MineMenu/Margin/VBox/Buttons"]
+custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
-text = "Rearm"
-
-[node name="CloseBtn" type="Button" parent="HudLayer/MineMenu/VBox/Buttons"]
-layout_mode = 2
-text = "X"
+script = ExtResource("3_soldier_btn")

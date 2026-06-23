@@ -103,6 +103,20 @@ static func _gland_stats_bbcode() -> String:
 	return "\n".join(lines)
 
 
+static func mine_menu_stats_bbcode(mine: Dictionary) -> String:
+	var lines: PackedStringArray = []
+	lines.append(TowerCatalog.attack_type("mine"))
+	if mine.armed:
+		lines.append("Armed")
+		lines.append("Damage: %d" % GameTuning.MINE_DAMAGE)
+	elif GameState.is_rearming_mine(mine.id):
+		lines.append("Rearming…")
+	else:
+		lines.append("Spent")
+		lines.append("Rearm: %.0fs" % GameTuning.MINE_REARM_DURATION)
+	return "\n".join(lines)
+
+
 static func _format_stat_with_delta(label: String, value: float, delta: float) -> String:
 	return "%s: %.1f%s" % [label, value, _format_delta_bbcode(delta)]
 
