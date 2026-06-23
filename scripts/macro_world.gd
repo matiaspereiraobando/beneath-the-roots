@@ -19,6 +19,13 @@ const BUILD_LABELS := {
 }
 const TOOLBAR_EDGE_MARGIN := 8
 const TOOLBAR_SECTION_GAP := 16
+const TOWER_RANGE_COLORS := {
+	"spitter": Color(0.45, 0.75, 0.35, 0.9),
+	"crusher": Color(0.85, 0.55, 0.35, 0.9),
+	"needle": Color(0.55, 0.65, 0.9, 0.9),
+	"gland": Color(0.75, 0.45, 0.9, 0.9),
+}
+const RANGE_CIRCLE_SEGMENTS := 72
 
 enum MacroTool { NONE, DIG, BUILD }
 
@@ -39,6 +46,7 @@ enum MacroTool { NONE, DIG, BUILD }
 @onready var _toolbar_panel: PanelContainer = $HudLayer/ToolBarPanel
 
 var _dig_hints: Node2D
+var _range_indicator_root: Node2D
 var _preview_root: Node2D
 var _dig_progress_root: Node2D
 var _mines_root: Node2D
@@ -564,6 +572,7 @@ func _on_structure_button(type: String) -> void:
 func _show_tower_menu(tower: Dictionary, world_pos: Vector2) -> void:
 	_selected_tower = tower
 	tower_menu.visible = true
+	_show_range_indicator(tower)
 	call_deferred("_position_tower_menu", world_pos)
 	_refresh_tower_menu()
 
@@ -604,6 +613,7 @@ func _on_soldiers_changed(_count: int) -> void:
 func _hide_tower_menu() -> void:
 	tower_menu.visible = false
 	_selected_tower = {}
+	_hide_range_indicator()
 
 
 func _on_add_soldier() -> void:
@@ -635,6 +645,10 @@ func _on_enemy_removed(enemy: Dictionary) -> void:
 
 
 func _setup_world_ui() -> void:
+	_range_indicator_root = Node2D.new()
+	_range_indicator_root.name = "RangeIndicator"
+	_range_indicator_root.z_index = 3
+	add_child(_range_indicator_root)
 	_preview_root = Node2D.new()
 	_preview_root.name = "HoverPreview"
 	_preview_root.z_index = 8
@@ -709,8 +723,23 @@ func _update_hover_preview() -> void:
 	var size := PlacementRules.footprint_for(_selected_structure)
 	var err := PlacementRules.can_place_tower(cell, _selected_structure)
 	var tower_valid := err == ""
+	_add_build_range_preview(cell, _selected_structure, tower_valid)
 	for foot_cell in PlacementRules.footprint_cells(cell, size):
 		_add_preview_cell(foot_cell, tower_valid)
+
+
+func _add_build_range_preview(anchor: Vector2i, tower_type: String, valid: bool) -> void:
+	var range_px: float = GameTuning.tower_stat(tower_type, "range", 0.0)
+	if range_px <= 0.0:
+		return
+	var color := _tower_range_color(tower_type)
+	if not valid:
+		color.a *= 0.35
+	var indicator := _make_range_circle(range_px, color)
+	indicator.z_index = -1
+	var size := PlacementRules.footprint_for(tower_type)
+	indicator.position = PlacementRules.structure_world_center(anchor, size, _pathfinding)
+	_preview_root.add_child(indicator)
 
 
 func _add_preview_cell(cell: Vector2i, valid: bool) -> void:
@@ -769,6 +798,50 @@ func _on_cell_changed(cell: Vector2i) -> void:
 	_terrain_painter.refresh_region(
 		terrain, GameState.level_data.cells, cell, 2, _macro_tileset
 	)
+
+
+func _show_range_indicator(tower: Dictionary) -> void:
+	if _range_indicator_root == null:
+		return
+	_hide_range_indicator()
+	var tower_type := str(tower.type)
+	var range_px: float = GameTuning.tower_stat(tower_type, "range", GameTuning.SPITTER_RANGE)
+	if range_px <= 0.0:
+		return
+	var indicator := _make_range_circle(range_px, _tower_range_color(tower_type))
+	indicator.position = _tower_sprite_position(tower)
+	_range_indicator_root.add_child(indicator)
+
+
+func _tower_range_color(tower_type: String) -> Color:
+	return TOWER_RANGE_COLORS.get(tower_type, Color(0.9, 0.9, 0.9, 0.85))
+
+
+func _hide_range_indicator() -> void:
+	if _range_indicator_root == null:
+		return
+	_clear_children(_range_indicator_root)
+
+
+func _make_range_circle(radius_px: float, color: Color) -> Node2D:
+	var root := Node2D.new()
+	var points := PackedVector2Array()
+	for i in RANGE_CIRCLE_SEGMENTS:
+		var angle := TAU * float(i) / float(RANGE_CIRCLE_SEGMENTS)
+		points.append(Vector2(cos(angle), sin(angle)) * radius_px)
+	var fill := Polygon2D.new()
+	fill.polygon = points
+	fill.color = Color(color.r, color.g, color.b, 0.1)
+	fill.antialiased = true
+	root.add_child(fill)
+	var outline := Line2D.new()
+	outline.points = points
+	outline.closed = true
+	outline.width = 2.0
+	outline.default_color = color
+	outline.antialiased = true
+	root.add_child(outline)
+	return root
 
 
 func _make_ring(color: Color) -> Sprite2D:
