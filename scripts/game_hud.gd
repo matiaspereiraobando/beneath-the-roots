@@ -10,6 +10,7 @@ const HUD_ICON_SIZE := 32
 
 @onready var _biomass_icon: HudIconAnimator = $Margin/Row/BiomassBlock/IconWell/BiomassIcon
 @onready var _biomass_value: Label = $Margin/Row/BiomassBlock/BiomassText/Value
+@onready var _biomass_rate: Label = $Margin/Row/BiomassBlock/BiomassText/Rate
 @onready var _wave_label: Label = $Margin/Row/WavePill/PillRow/WaveLabel
 @onready var _wave_ring: Control = $Margin/Row/WavePill/PillRow/WaveRing
 @onready var _builder_icon: HudIconAnimator = $Margin/Row/AntStrip/StripRow/BuilderRow/Icon
@@ -45,6 +46,7 @@ func _apply_panel_styles() -> void:
 		"font_color", HudThemeRes.ON_SURFACE_VARIANT
 	)
 	HudThemeRes.apply_pixel_label($Margin/Row/BiomassBlock/BiomassText/Title, HudThemeRes.FONT_STAT)
+	HudThemeRes.apply_pixel_label(_biomass_rate, HudThemeRes.FONT_CAPTION)
 	_wave_label.add_theme_color_override("font_color", HudThemeRes.PRIMARY)
 	HudThemeRes.apply_pixel_label(_wave_label, HudThemeRes.FONT_STAT)
 	for count_lbl in [_builder_count, _gatherer_count, _soldier_count]:
@@ -108,6 +110,8 @@ func _wire_signals() -> void:
 	GameState.phase_changed.connect(func(_p): _refresh_wave())
 	GameState.colony_counts_changed.connect(_refresh_ants)
 	GameState.soldiers_changed.connect(_refresh_ants)
+	GameState.tower_soldiers_changed.connect(func(_t): _refresh_ants())
+	GameState.tower_soldiers_changed.connect(func(_t): _refresh_biomass_rate())
 	GameState.queen_hp_changed.connect(_on_queen_hp_changed)
 	GameState.queen_satiety_changed.connect(_on_satiety_changed)
 	GameState.ant_spawned.connect(_on_ant_spawned)
@@ -124,6 +128,20 @@ func _refresh_all() -> void:
 
 func _on_biomass_changed(value: int) -> void:
 	_biomass_value.text = str(value)
+	_refresh_biomass_rate()
+
+
+func _refresh_biomass_rate() -> void:
+	var net := GameState.biomass_net_per_second()
+	if absf(net) < 0.05:
+		_biomass_rate.text = ""
+		return
+	var sign := "+" if net >= 0.0 else ""
+	_biomass_rate.text = "%s%.1f/s" % [sign, net]
+	_biomass_rate.add_theme_color_override(
+		"font_color",
+		HudThemeRes.HP_FILL_END if net >= 0.0 else HudThemeRes.ERROR,
+	)
 
 
 func _refresh_wave() -> void:
@@ -148,9 +166,10 @@ func _refresh_wave() -> void:
 
 
 func _refresh_ants(_count: int = 0) -> void:
-	_builder_count.text = str(GameState.builder_count)
-	_gatherer_count.text = str(GameState.gatherer_count)
-	_soldier_count.text = str(GameState.free_soldiers)
+	_builder_count.text = "%d/%d" % [GameState.builder_count, GameState.total_builder_count()]
+	_gatherer_count.text = "%d/%d" % [GameState.gatherer_count, GameState.total_gatherer_count()]
+	_soldier_count.text = "%d/%d" % [GameState.free_soldiers, GameState.total_soldier_count()]
+	_refresh_biomass_rate()
 
 
 func _on_queen_hp_changed(current: int, maximum: int) -> void:

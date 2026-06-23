@@ -84,12 +84,16 @@ var _combat := CombatSystem.new()
 var _colony
 var _enemy_sprites: Dictionary = {}
 var _tower_sprites: Dictionary = {}
+var _operator_warning_sprites: Dictionary = {}
+var _operator_warning_texture: Texture2D
+var _operator_warning_phase: float = 0.0
 var _gland_aura_sprites: Dictionary = {}
 var _mine_sprites: Dictionary = {}
 var _scaffold_sprites: Dictionary = {}
 var _projectile_sprites: Dictionary = {}
 var _dig_progress_labels: Dictionary = {}
 var _selected_tower: Dictionary = {}
+var _selected_tower_id: int = -1
 var _selected_mine: Dictionary = {}
 var _textures: Dictionary = {}
 var _macro_tileset
@@ -126,6 +130,8 @@ func _apply_hud_theme() -> void:
 		return
 	for node in [_toolbar_panel, tower_menu, mine_menu, structure_info_panel]:
 		node.theme = theme
+	tower_menu.mouse_filter = Control.MOUSE_FILTER_STOP
+	mine_menu.mouse_filter = Control.MOUSE_FILTER_STOP
 
 
 func _resolve_game_theme() -> Theme:
@@ -168,6 +174,7 @@ func _wire_signals() -> void:
 	GameState.projectiles_changed.connect(_sync_projectiles)
 	GameState.combat_effects_changed.connect(_sync_combat_effects)
 	GameState.tower_fired.connect(_on_tower_fired)
+	GameState.tower_soldiers_changed.connect(_on_tower_soldiers_changed)
 	GameState.soldiers_changed.connect(_on_soldiers_changed)
 	GameState.queen_satiety_changed.connect(_on_queen_satiety_changed)
 	GameState.tower_placed.connect(_on_any_tower_placed_for_menu)
@@ -183,6 +190,8 @@ func _wire_signals() -> void:
 func _load_textures() -> void:
 	for tower_type in BUILD_TYPES + ["mine"]:
 		_textures[tower_type] = TowerSprites.make_tower_texture(tower_type)
+	if ResourceLoader.exists(SpritePaths.operator_warning_icon()):
+		_operator_warning_texture = load(SpritePaths.operator_warning_icon())
 
 
 func _make_preview_textures() -> void:
@@ -209,6 +218,7 @@ func _load_level() -> void:
 	_selected_structure = ""
 	_enemy_sprites.clear()
 	_tower_sprites.clear()
+	_operator_warning_sprites.clear()
 	_gland_aura_sprites.clear()
 	_mine_sprites.clear()
 	_scaffold_sprites.clear()
@@ -324,6 +334,7 @@ func _process(delta: float) -> void:
 	_sync_build_scaffolds()
 	_sync_combat_effects()
 	_update_gland_pulse(delta)
+	_update_operator_warning_pulse(delta)
 	_sync_enemy_positions()
 	_sync_projectiles()
 	_update_hover_preview()
@@ -537,6 +548,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			if _is_mouse_over_macro_hud():
+				return
 			handle_world_click(get_global_mouse_position())
 
 
@@ -717,8 +730,29 @@ func _check_structure_info_hover() -> void:
 	_refresh_structure_info_panel()
 
 
+func _live_selected_tower() -> Dictionary:
+	if _selected_tower_id < 0:
+		return {}
+	return GameState.get_tower_by_id(_selected_tower_id)
+
+
+func _is_mouse_over_macro_hud() -> bool:
+	if tower_menu.visible and tower_menu.get_global_rect().has_point(tower_menu.get_global_mouse_position()):
+		return true
+	if mine_menu.visible and mine_menu.get_global_rect().has_point(mine_menu.get_global_mouse_position()):
+		return true
+	if _toolbar_panel.get_global_rect().has_point(_toolbar_panel.get_global_mouse_position()):
+		return true
+	if structure_info_panel.visible and structure_info_panel.get_global_rect().has_point(
+		structure_info_panel.get_global_mouse_position()
+	):
+		return true
+	return false
+
+
 func _show_tower_menu(tower: Dictionary, world_pos: Vector2) -> void:
-	_selected_tower = tower
+	_selected_tower_id = int(tower.get("id", -1))
+	_selected_tower = GameState.get_tower_by_id(_selected_tower_id)
 	tower_menu.visible = true
 	_show_range_indicator(tower)
 	call_deferred("_position_tower_menu", world_pos)
@@ -735,20 +769,25 @@ func _position_tower_menu(world_pos: Vector2) -> void:
 
 
 func _refresh_tower_menu() -> void:
+	_selected_tower = _live_selected_tower()
 	if _selected_tower.is_empty():
 		return
+	var assigned := int(_selected_tower.get("soldiers", 0))
 	_tower_title.text = TowerCombatStats.menu_title(_selected_tower)
 	_tower_stats.text = TowerCombatStats.menu_stats_bbcode(_selected_tower, _pathfinding)
-	if _selected_tower.type == "gland":
-		_add_btn.disabled = true
-		_remove_btn.disabled = true
-		return
 	_add_btn.disabled = (
-		_selected_tower.soldiers >= GameTuning.TOWER_BASE_SLOTS
+		assigned >= GameTuning.TOWER_BASE_SLOTS
 		or GameState.free_soldiers <= 0
 	)
-	_remove_btn.disabled = _selected_tower.soldiers <= 0
+	_remove_btn.disabled = assigned <= 0
 	tower_menu.reset_size()
+
+
+func _on_tower_soldiers_changed(tower: Dictionary) -> void:
+	_sync_tower_sprite_operation(tower)
+	_sync_gland_auras()
+	if tower_menu.visible and _selected_tower_id == int(tower.get("id", -1)):
+		_refresh_tower_menu()
 
 
 func _on_soldiers_changed(_count: int) -> void:
@@ -757,17 +796,18 @@ func _on_soldiers_changed(_count: int) -> void:
 
 
 func _on_queen_satiety_changed(_value: float) -> void:
-	if tower_menu.visible and _selected_tower.type != "gland":
+	if tower_menu.visible:
 		_refresh_tower_menu()
 
 
 func _on_any_tower_placed_for_menu(_tower: Dictionary) -> void:
-	if tower_menu.visible and _selected_tower.type != "gland":
+	if tower_menu.visible:
 		_refresh_tower_menu()
 
 
 func _hide_tower_menu() -> void:
 	tower_menu.visible = false
+	_selected_tower_id = -1
 	_selected_tower = {}
 	_hide_range_indicator()
 
@@ -820,15 +860,15 @@ func _on_rearm_mine() -> void:
 
 
 func _on_add_soldier() -> void:
-	if _selected_tower.is_empty():
+	if _selected_tower_id < 0:
 		return
-	GameState.assign_soldier(_selected_tower)
+	GameState.assign_soldier_to_id(_selected_tower_id)
 
 
 func _on_remove_soldier() -> void:
-	if _selected_tower.is_empty():
+	if _selected_tower_id < 0:
 		return
-	GameState.remove_soldier(_selected_tower)
+	GameState.remove_soldier_from_id(_selected_tower_id)
 
 
 func _on_enemy_spawned(enemy: Dictionary) -> void:
@@ -1217,13 +1257,70 @@ func _on_tower_placed(tower: Dictionary) -> void:
 	var sprite := AnimatedSprite2D.new()
 	sprite.sprite_frames = TowerSprites.make_structure_sprite_frames(tower.type)
 	sprite.animation = &"idle"
-	sprite.play()
 	sprite.position = _tower_sprite_position(tower)
 	sprite.scale = _tower_sprite_scale(tower)
 	towers_root.add_child(sprite)
 	_tower_sprites[tower.id] = sprite
+	_sync_tower_sprite_operation(tower)
 	_sync_gland_auras()
 	_refresh_tower_terrain(tower)
+
+
+func _sync_tower_sprite_operation(tower: Dictionary) -> void:
+	if not _tower_sprites.has(tower.id):
+		return
+	var sprite: AnimatedSprite2D = _tower_sprites[tower.id]
+	if TowerCombatStats.tower_is_operational(tower):
+		if not sprite.is_playing():
+			sprite.play()
+		sprite.modulate = Color.WHITE
+	else:
+		sprite.stop()
+		sprite.frame = 0
+		sprite.modulate = Color(0.62, 0.62, 0.62, 0.88)
+	_sync_operator_warning(tower)
+
+
+func _operator_warning_sprite_position(tower: Dictionary) -> Vector2:
+	var center := _tower_sprite_position(tower)
+	var rise := float(tower.get("height", 2)) * GameTuning.TILE_SIZE * 0.42
+	return center + Vector2(0.0, -rise)
+
+
+func _sync_operator_warning(tower: Dictionary) -> void:
+	if TowerCombatStats.tower_is_operational(tower):
+		if _operator_warning_sprites.has(tower.id):
+			_operator_warning_sprites[tower.id].visible = false
+		return
+	if _operator_warning_texture == null:
+		return
+	var warning: Sprite2D
+	if _operator_warning_sprites.has(tower.id):
+		warning = _operator_warning_sprites[tower.id]
+	else:
+		warning = Sprite2D.new()
+		warning.name = "OperatorWarning"
+		warning.texture = _operator_warning_texture
+		warning.centered = true
+		warning.z_index = 1
+		towers_root.add_child(warning)
+		_operator_warning_sprites[tower.id] = warning
+	warning.position = _operator_warning_sprite_position(tower)
+	warning.visible = true
+
+
+func _update_operator_warning_pulse(delta: float) -> void:
+	if _operator_warning_sprites.is_empty():
+		return
+	_operator_warning_phase += delta * 4.0
+	var alpha := 0.7 + 0.3 * (sin(_operator_warning_phase) * 0.5 + 0.5)
+	var scale := 0.9 + 0.1 * (sin(_operator_warning_phase * 1.35) * 0.5 + 0.5)
+	var modulate := Color(1.0, 1.0, 1.0, alpha)
+	for warning: Sprite2D in _operator_warning_sprites.values():
+		if not is_instance_valid(warning) or not warning.visible:
+			continue
+		warning.modulate = modulate
+		warning.scale = Vector2(scale, scale)
 
 
 func _refresh_tower_terrain(tower: Dictionary) -> void:
@@ -1254,6 +1351,8 @@ func _sync_gland_auras() -> void:
 	for tower in GameState.towers:
 		if tower.type != "gland":
 			continue
+		if not TowerCombatStats.tower_is_operational(tower):
+			continue
 		var center := _tower_sprite_position(tower)
 		var aura := _make_ring(Color(0.68, 0.35, 0.82, 0.35))
 		var range_px: float = GameTuning.tower_stat("gland", "range", 180.0)
@@ -1271,6 +1370,8 @@ func _update_gland_pulse(_delta: float) -> void:
 	var pulse := 0.75 + 0.25 * sin(Time.get_ticks_msec() * 0.006)
 	for tower in GameState.towers:
 		if tower.type != "gland":
+			continue
+		if not TowerCombatStats.tower_is_operational(tower):
 			continue
 		if _tower_sprites.has(tower.id):
 			_tower_sprites[tower.id].modulate = Color(0.9 * pulse, 0.75 * pulse, 1.0)

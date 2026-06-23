@@ -14,8 +14,8 @@ const ENTRIES := {
 	},
 	"needle": {
 		"name": "Needle",
-		"attack_type": "Piercing beam",
-		"description": "Cuts a narrow beam through up to three enemies along the path.",
+		"attack_type": "Rear sniper",
+		"description": "Fires a focused beam at the rearmost enemy in range.",
 	},
 	"gland": {
 		"name": "Gland",
@@ -102,8 +102,7 @@ static func stat_lines(type: String) -> PackedStringArray:
 			var splash_tiles := float(GameTuning.tower_stat("crusher", "splash_radius", 90.0)) / float(GameTuning.TILE_SIZE)
 			lines.append("Splash: %.1f tiles" % splash_tiles)
 		"needle":
-			var pierce: int = int(GameTuning.tower_stat("needle", "pierce", 3))
-			lines.append("Pierce: %d targets" % pierce)
+			lines.append("Target: rearmost on path")
 
-	lines.append("Soldiers: %d slots (+DPS & fire rate)" % GameTuning.TOWER_BASE_SLOTS)
+	lines.append("Soldiers: %d slots (1 operator + upgrades)" % GameTuning.TOWER_BASE_SLOTS)
 	return lines

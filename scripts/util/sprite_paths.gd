@@ -101,6 +101,10 @@ static func builder_rearm_button_sheet() -> String:
 	return "res://assets/sprites/ui/builder_rearm_32.png"
 
 
+static func operator_warning_icon() -> String:
+	return "res://assets/sprites/ui/operator_warning_32.png"
+
+
 static func micro_background() -> String:
 	var v2 := "res://assets/micro/nursery_background_v2.png"
 	if ResourceLoader.exists(v2):

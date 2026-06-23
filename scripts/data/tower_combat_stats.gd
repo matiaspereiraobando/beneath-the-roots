@@ -8,6 +8,18 @@ const MOD_COLOR_POS := "#4ade80"
 const MOD_COLOR_NEG := "#f87171"
 
 
+static func tower_is_operational(tower: Dictionary) -> bool:
+	if tower.is_empty():
+		return false
+	if str(tower.type) == "mine":
+		return true
+	return int(tower.get("soldiers", 0)) >= GameTuning.TOWER_OPERATOR_SOLDIERS
+
+
+static func bonus_soldiers(tower: Dictionary) -> int:
+	return maxi(0, int(tower.get("soldiers", 0)) - GameTuning.TOWER_OPERATOR_SOLDIERS)
+
+
 static func aura_multipliers(tower: Dictionary, pathfinding: GridPathfinding) -> Dictionary:
 	var damage_mult := 1.0
 	var fire_rate_mult := 1.0
@@ -16,6 +28,8 @@ static func aura_multipliers(tower: Dictionary, pathfinding: GridPathfinding) ->
 	var tower_center := PlacementRules.tower_world_center(tower, pathfinding)
 	for other in GameState.towers:
 		if other.type != "gland":
+			continue
+		if not tower_is_operational(other):
 			continue
 		var gland_center := PlacementRules.tower_world_center(other, pathfinding)
 		var gland_range: float = GameTuning.tower_stat("gland", "range", 180.0)
@@ -45,17 +59,21 @@ static func base_dps(tower_type: String) -> float:
 
 
 static func tower_damage(tower: Dictionary, pathfinding: GridPathfinding) -> float:
+	if not tower_is_operational(tower):
+		return 0.0
 	var tower_type := str(tower.type)
 	var aura := aura_multipliers(tower, pathfinding)
 	return (
-		base_damage(tower_type) + int(tower.get("soldiers", 0)) * GameTuning.SOLDIER_DPS_BONUS
+		base_damage(tower_type) + bonus_soldiers(tower) * GameTuning.SOLDIER_DPS_BONUS
 	) * aura.damage_mult
 
 
 static func tower_fire_rate(tower: Dictionary, pathfinding: GridPathfinding) -> float:
+	if not tower_is_operational(tower):
+		return 0.0
 	var tower_type := str(tower.type)
 	var rate: float = base_fire_rate(tower_type) * (
-		1.0 + int(tower.get("soldiers", 0)) * GameTuning.SOLDIER_FIRE_RATE_BONUS
+		1.0 + bonus_soldiers(tower) * GameTuning.SOLDIER_FIRE_RATE_BONUS
 	)
 	var aura := aura_multipliers(tower, pathfinding)
 	rate *= aura.fire_rate_mult
@@ -75,22 +93,41 @@ static func menu_title(tower: Dictionary) -> String:
 static func menu_stats_bbcode(tower: Dictionary, pathfinding: GridPathfinding) -> String:
 	var tower_type := str(tower.type)
 	if tower_type == "gland":
-		return _gland_stats_bbcode()
+		return _gland_tower_menu_bbcode(tower)
 	var lines: PackedStringArray = []
 	lines.append(TowerCatalog.attack_type(tower_type))
+	if not tower_is_operational(tower):
+		lines.append("Inactive — needs operator")
+		lines.append("Range: %.1f tiles" % TowerCatalog.range_tiles(tower_type))
+		lines.append("Soldiers: %d/%d" % [int(tower.get("soldiers", 0)), GameTuning.TOWER_BASE_SLOTS])
+		return "\n".join(lines)
 	lines.append("Range: %.1f tiles" % TowerCatalog.range_tiles(tower_type))
 	var base := base_dps(tower_type)
 	var effective := effective_dps(tower, pathfinding)
 	lines.append(_format_stat_with_delta("DPS", effective, effective - base))
 	lines.append("Soldiers: %d/%d" % [int(tower.get("soldiers", 0)), GameTuning.TOWER_BASE_SLOTS])
+	if bonus_soldiers(tower) <= 0:
+		lines.append("Upgrades: none")
 	match tower_type:
 		"crusher":
 			var splash_tiles := float(GameTuning.tower_stat("crusher", "splash_radius", 90.0)) / float(GameTuning.TILE_SIZE)
 			lines.append("Splash: %.1f tiles" % splash_tiles)
 		"needle":
-			var pierce: int = int(GameTuning.tower_stat("needle", "pierce", 3))
-			lines.append("Pierce: %d targets" % pierce)
+			lines.append("Target: rearmost on path")
 	return "\n".join(lines)
+
+
+static func _gland_tower_menu_bbcode(tower: Dictionary) -> String:
+	var lines: PackedStringArray = []
+	lines.append(TowerCatalog.attack_type("gland"))
+	if not tower_is_operational(tower):
+		lines.append("Inactive — needs operator")
+		lines.append("Aura range: %.1f tiles" % TowerCatalog.range_tiles("gland"))
+		lines.append("Soldiers: %d/%d" % [int(tower.get("soldiers", 0)), GameTuning.TOWER_BASE_SLOTS])
+		return "\n".join(lines)
+	return _gland_stats_bbcode() + "\nSoldiers: %d/%d" % [
+		int(tower.get("soldiers", 0)), GameTuning.TOWER_BASE_SLOTS,
+	]
 
 
 static func _gland_stats_bbcode() -> String:

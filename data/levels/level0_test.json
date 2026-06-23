@@ -16,7 +16,9 @@
     "h": 3
   },
   "startingBiomass": 80,
-  "startingSoldiers": 3,
+  "startingGatherers": 1,
+  "startingSoldiers": 1,
+  "startingBuilders": 1,
   "queenMaxHp": 100,
   "deposits": [
     [

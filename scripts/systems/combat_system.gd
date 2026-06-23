@@ -26,6 +26,8 @@ func _update_tower(tower: Dictionary, delta: float) -> void:
 	var tower_type: String = tower.type
 	if tower_type == "gland":
 		return
+	if not TowerCombatStats.tower_is_operational(tower):
+		return
 	var tid: int = tower.id
 	var cd: float = _tower_cooldowns.get(tid, 0.0)
 	cd -= delta
@@ -81,17 +83,14 @@ func _fire_crusher(tower: Dictionary, center: Vector2, range_px: float, tid: int
 
 
 func _fire_needle(tower: Dictionary, center: Vector2, range_px: float, tid: int) -> void:
-	var target := _find_target(center, range_px)
+	var target := _find_rearmost_target(center, range_px)
 	if target.is_empty():
 		_tower_cooldowns[tid] = 0.1
 		return
-	var pierce: int = int(GameTuning.tower_stat("needle", "pierce", 3))
-	var hits := _enemies_in_needle_cone(center, target.position, range_px, pierce)
 	var dmg: float = _tower_damage(tower)
-	for enemy in hits:
-		enemy.hp = float(enemy.hp) - dmg
-		if enemy.hp <= 0:
-			GameState.kill_enemy(enemy)
+	target.hp = float(target.hp) - dmg
+	if target.hp <= 0:
+		GameState.kill_enemy(target)
 	GameState.add_combat_effect({
 		"type": "beam",
 		"x": center.x,
@@ -103,23 +102,6 @@ func _fire_needle(tower: Dictionary, center: Vector2, range_px: float, tid: int)
 	})
 	GameState.emit_tower_fired(tid)
 	_tower_cooldowns[tid] = 1.0 / _tower_fire_rate(tower)
-
-
-func _enemies_in_needle_cone(from: Vector2, toward: Vector2, range_px: float, max_hits: int) -> Array:
-	var dir := (toward - from).normalized()
-	var candidates: Array = []
-	for enemy in GameState.enemies:
-		var pos: Vector2 = enemy.position
-		if from.distance_to(pos) > range_px:
-			continue
-		var to_enemy := (pos - from).normalized()
-		if dir.dot(to_enemy) < 0.85:
-			continue
-		candidates.append(enemy)
-	candidates.sort_custom(func(a, b): return float(a.path_progress) > float(b.path_progress))
-	if candidates.size() > max_hits:
-		return candidates.slice(0, max_hits)
-	return candidates
 
 
 func _update_mines(delta: float) -> void:
@@ -164,6 +146,21 @@ func _find_target(from: Vector2, range_px: float) -> Dictionary:
 			continue
 		var prog: float = float(enemy.path_progress)
 		if prog > best_prog:
+			best_prog = prog
+			best = enemy
+	return best
+
+
+func _find_rearmost_target(from: Vector2, range_px: float) -> Dictionary:
+	var best: Dictionary = {}
+	var best_prog: float = INF
+	for enemy in GameState.enemies:
+		var pos: Vector2 = enemy.position
+		var dist: float = from.distance_to(pos)
+		if dist > range_px:
+			continue
+		var prog: float = float(enemy.path_progress)
+		if prog < best_prog:
 			best_prog = prog
 			best = enemy
 	return best

@@ -51,6 +51,10 @@ text = "BIOMASS"
 layout_mode = 2
 text = "0"
 
+[node name="Rate" type="Label" parent="Margin/Row/BiomassBlock/BiomassText"]
+layout_mode = 2
+text = ""
+
 [node name="Spacer1" type="Control" parent="Margin/Row"]
 layout_mode = 2
 size_flags_horizontal = 3

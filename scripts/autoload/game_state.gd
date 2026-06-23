@@ -86,12 +86,14 @@ func reset_for_level(level_id: String, starting_biomass: int = 50, max_hp: int =
 		biomass = starting_biomass
 		queen_max_hp = max_hp
 		free_soldiers = 0
+		builder_count = 0
+		gatherer_count = 0
 	else:
 		biomass = level_data.get("startingBiomass", starting_biomass)
 		queen_max_hp = level_data.get("queenMaxHp", max_hp)
 		free_soldiers = level_data.get("startingSoldiers", 0)
-	gatherer_count = 0
-	builder_count = 0
+		builder_count = level_data.get("startingBuilders", 0)
+		gatherer_count = level_data.get("startingGatherers", 0)
 	nursery_queue.clear()
 	for i in NURSERY_SLOTS:
 		nursery_queue.append(EMPTY_SLOT)
@@ -445,6 +447,61 @@ func spend_biomass(amount: int) -> bool:
 	return true
 
 
+func pay_biomass_up_to(amount: int) -> void:
+	if amount <= 0:
+		return
+	var paid := mini(biomass, amount)
+	if paid <= 0:
+		return
+	biomass -= paid
+	biomass_changed.emit(biomass)
+
+
+func assigned_soldier_count() -> int:
+	var total := 0
+	for tower in towers:
+		total += int(tower.soldiers)
+	return total
+
+
+func busy_builder_count() -> int:
+	return dig_jobs.size() + build_jobs.size()
+
+
+func total_builder_count() -> int:
+	return builder_count + busy_builder_count()
+
+
+func total_soldier_count() -> int:
+	return free_soldiers + assigned_soldier_count()
+
+
+func total_gatherer_count() -> int:
+	return gatherer_count
+
+
+func biomass_income_per_second() -> float:
+	if gatherer_count <= 0:
+		return 0.0
+	return (
+		float(gatherer_count * GameTuning.GATHERER_BIOMASS_AMOUNT)
+		/ GameTuning.GATHERER_BIOMASS_INTERVAL
+	)
+
+
+func biomass_upkeep_per_second() -> float:
+	var upkeep := (
+		gatherer_count * GameTuning.GATHERER_UPKEEP
+		+ builder_count * GameTuning.BUILDER_UPKEEP
+		+ (free_soldiers + assigned_soldier_count()) * GameTuning.SOLDIER_UPKEEP
+	)
+	return float(upkeep) / GameTuning.ANT_UPKEEP_INTERVAL
+
+
+func biomass_net_per_second() -> float:
+	return biomass_income_per_second() - biomass_upkeep_per_second()
+
+
 func damage_queen(amount: int) -> void:
 	queen_hp = maxi(0, queen_hp - amount)
 	queen_hp_changed.emit(queen_hp, queen_max_hp)
@@ -484,6 +541,13 @@ func get_mine_at(cell: Vector2i) -> Dictionary:
 	for mine in mines:
 		if mine.tile_x == cell.x and mine.tile_y == cell.y:
 			return mine
+	return {}
+
+
+func get_tower_by_id(tower_id: int) -> Dictionary:
+	for tower in towers:
+		if int(tower.id) == tower_id:
+			return tower
 	return {}
 
 
@@ -598,26 +662,46 @@ func trigger_mine(mine: Dictionary) -> void:
 func assign_soldier(tower: Dictionary) -> bool:
 	if tower.is_empty():
 		return false
-	if tower.type == "gland":
+	return assign_soldier_to_id(int(tower.get("id", -1)))
+
+
+func assign_soldier_to_id(tower_id: int) -> bool:
+	var tower := get_tower_by_id(tower_id)
+	if tower.is_empty():
+		return false
+	if str(tower.type) == "mine":
 		return false
 	if free_soldiers <= 0:
 		return false
-	if tower.soldiers >= GameTuning.TOWER_BASE_SLOTS:
+	var assigned := int(tower.get("soldiers", 0))
+	if assigned >= GameTuning.TOWER_BASE_SLOTS:
 		return false
-	tower.soldiers += 1
+	tower.soldiers = assigned + 1
 	free_soldiers -= 1
 	tower_soldiers_changed.emit(tower)
 	soldiers_changed.emit(free_soldiers)
+	colony_counts_changed.emit()
 	return true
 
 
 func remove_soldier(tower: Dictionary) -> bool:
-	if tower.is_empty() or tower.soldiers <= 0:
+	if tower.is_empty():
 		return false
-	tower.soldiers -= 1
+	return remove_soldier_from_id(int(tower.get("id", -1)))
+
+
+func remove_soldier_from_id(tower_id: int) -> bool:
+	var tower := get_tower_by_id(tower_id)
+	if tower.is_empty():
+		return false
+	var assigned := int(tower.get("soldiers", 0))
+	if assigned <= 0:
+		return false
+	tower.soldiers = assigned - 1
 	free_soldiers += 1
 	tower_soldiers_changed.emit(tower)
 	soldiers_changed.emit(free_soldiers)
+	colony_counts_changed.emit()
 	return true
 
 

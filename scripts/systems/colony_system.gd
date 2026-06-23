@@ -4,6 +4,7 @@ const AntType = preload("res://scripts/data/ant_types.gd").Type
 const EMPTY_SLOT := preload("res://scripts/data/ant_types.gd").EMPTY_SLOT
 
 var _gatherer_timer: float = 0.0
+var _upkeep_timer: float = 0.0
 
 
 func update(delta: float) -> void:
@@ -14,6 +15,7 @@ func update(delta: float) -> void:
 	_tick_satiety(delta)
 	_tick_queen_spawn(delta)
 	_tick_gatherers(delta)
+	_tick_ant_upkeep(delta)
 	_tick_dig_jobs(delta)
 	_tick_build_jobs(delta)
 	_tick_mine_rearm_jobs(delta)
@@ -49,6 +51,27 @@ func _tick_gatherers(delta: float) -> void:
 		return
 	_gatherer_timer = GameTuning.GATHERER_BIOMASS_INTERVAL
 	GameState.add_biomass(GameState.gatherer_count * GameTuning.GATHERER_BIOMASS_AMOUNT)
+
+
+func _tick_ant_upkeep(delta: float) -> void:
+	var ant_count := (
+		GameState.gatherer_count
+		+ GameState.builder_count
+		+ GameState.free_soldiers
+		+ GameState.assigned_soldier_count()
+	)
+	if ant_count <= 0:
+		return
+	_upkeep_timer -= delta
+	if _upkeep_timer > 0.0:
+		return
+	_upkeep_timer = GameTuning.ANT_UPKEEP_INTERVAL
+	var cost := (
+		GameState.gatherer_count * GameTuning.GATHERER_UPKEEP
+		+ GameState.builder_count * GameTuning.BUILDER_UPKEEP
+		+ (GameState.free_soldiers + GameState.assigned_soldier_count()) * GameTuning.SOLDIER_UPKEEP
+	)
+	GameState.pay_biomass_up_to(cost)
 
 
 func _tick_dig_jobs(delta: float) -> void:

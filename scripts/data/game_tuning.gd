@@ -29,7 +29,8 @@ const STRUCTURE_FOOTPRINTS := {
 	"mine": Vector2i(1, 1),
 }
 
-const TOWER_BASE_SLOTS := 2
+const TOWER_BASE_SLOTS := 3
+const TOWER_OPERATOR_SOLDIERS := 1
 const SOLDIER_DPS_BONUS := 2.0
 const SOLDIER_FIRE_RATE_BONUS := 0.15
 const PROJECTILE_SPEED := 400.0
@@ -57,7 +58,7 @@ const STRUCTURE_BUILD_DURATIONS := {
 
 const TOWER_STATS := {
 	"spitter": {
-		"range": 288.0,
+		"range": 176.0,
 		"damage": 8.0,
 		"fire_rate": 1.2,
 	},
@@ -69,9 +70,8 @@ const TOWER_STATS := {
 	},
 	"needle": {
 		"range": 224.0,
-		"damage": 6.0,
+		"damage": 9.0,
 		"fire_rate": 1.5,
-		"pierce": 3,
 	},
 	"gland": {
 		"range": 180.0,
@@ -91,12 +91,16 @@ const TOWER_PLACEHOLDER_COLORS := {
 
 # Legacy aliases
 const SPITTER_COST := 40
-const SPITTER_RANGE := 288.0
+const SPITTER_RANGE := 176.0
 const SPITTER_DAMAGE := 8.0
 const SPITTER_FIRE_RATE := 1.2
 
 const GATHERER_BIOMASS_INTERVAL := 2.0
-const GATHERER_BIOMASS_AMOUNT := 3
+const GATHERER_BIOMASS_AMOUNT := 4
+const GATHERER_UPKEEP := 1
+const BUILDER_UPKEEP := 1
+const SOLDIER_UPKEEP := 2
+const ANT_UPKEEP_INTERVAL := 2.0
 
 const QUEEN_SPAWN_INTERVAL := 10.0
 const WELL_FED_SPAWN_MULT := 0.65
@@ -110,11 +114,11 @@ const STARVE_THRESHOLD := 30.0
 const STARVE_FIRE_RATE_MULT := 0.65
 
 const ENEMY_STATS := {
-	"skitter": {"hp": 30, "speed": 110.0, "damage": 8, "reward": 8},
-	"mite": {"hp": 18, "speed": 145.0, "damage": 5, "reward": 5},
-	"chitin": {"hp": 80, "speed": 60.0, "damage": 15, "reward": 15},
-	"borer": {"hp": 120, "speed": 45.0, "damage": 18, "reward": 12},
-	"scarab": {"hp": 200, "speed": 44.0, "damage": 25, "reward": 40},
+	"skitter": {"hp": 34, "speed": 115.0, "damage": 8, "reward": 7},
+	"mite": {"hp": 22, "speed": 150.0, "damage": 5, "reward": 5},
+	"chitin": {"hp": 90, "speed": 62.0, "damage": 16, "reward": 14},
+	"borer": {"hp": 135, "speed": 48.0, "damage": 20, "reward": 11},
+	"scarab": {"hp": 230, "speed": 46.0, "damage": 28, "reward": 35},
 }
 
 static func enemy_stat(type: String, key: String):
